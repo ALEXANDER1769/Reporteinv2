@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>PYSIGA - Reporte Inventario</title>
+    <style>
+        body {
+            margin: 0;
+            background: #f4f6f9;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,.1);
+            overflow: hidden;
+        }
+        .login-section {
+            padding: 30px;
+            text-align: center;
+            display: block;
+        }
+        .report-section {
+            padding: 30px;
+            display: none;
+        }
+        .card {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,.1);
+            margin-bottom: 30px;
+        }
+        .total {
+            text-align: center;
+        }
+        .total h2 {
+            margin: 0;
+            color: #555;
+        }
+        .total .numero {
+            font-size: 48px;
+            font-weight: bold;
+            color: #2c7be5;
+        }
+        input[type="email"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background: #2c7be5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #256ac4;
+        }
+        canvas {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sección de Login -->
+        <div id="loginSection" class="login-section">
+            <h2>PYSIGA - Reporte Inventario</h2>
+            <p>Gestión Ganadera Integral</p>
+            <input type="email" id="emailInput" placeholder="Correo registrado" required>
+            <button id="loginButton">Ingresar</button>
+        </div>
+
+        <!-- Sección de Reporte (oculta inicialmente) -->
+        <div id="reportSection" class="report-section">
+            <div class="card total">
+                <h2>Total de animales</h2>
+                <div id="totalAnimales" class="numero">Cargando...</div>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-bottom:20px;color:#555">
+                    Cantidad de animales por lote
+                </h3>
+                <canvas id="graficoLotes"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        const WORKER_URL = "https://pysiga.d-alexjose.workers.dev"; // Asegúrate que apunte a tu worker
+        let graficoLotes = null;
+
+        // Referencias a elementos DOM
+        const loginSection = document.getElementById('loginSection');
+        const reportSection = document.getElementById('reportSection');
+        const emailInput = document.getElementById('emailInput');
+        const loginButton = document.getElementById('loginButton');
+        const totalAnimalesElement = document.getElementById('totalAnimales');
+
+        // Evento de login
+        loginButton.addEventListener('click', async () => {
+            const email = emailInput.value.trim();
+            if (!email) {
+                alert("Por favor, ingrese su correo.");
+                return;
+            }
+
+            try {
+                // Guardar email en localStorage (opcional, para persistencia)
+                localStorage.setItem("email", email);
+
+                // Mostrar sección de reporte y ocultar login
+                loginSection.style.display = 'none';
+                reportSection.style.display = 'block';
+
+                // Cargar datos
+                await cargarReporteInventario(email);
+
+            } catch (error) {
+                console.error("Error al iniciar sesión:", error);
+                alert("Error al conectar con el servidor. Por favor, intente nuevamente.");
+                // Volver a mostrar login si falla
+                loginSection.style.display = 'block';
+                reportSection.style.display = 'none';
+            }
+        });
+
+        async function cargarReporteInventario(email) {
+            console.log("Intentando cargar reporte para el email:", email);
+
+            try {
+                const res = await fetch(WORKER_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        accion: "reporteInventario",
+                        email: email
+                    })
+                });
+
+                console.log("Respuesta del Worker Status:", res.status);
+
+                const responseText = await res.text();
+                console.log("Respuesta bruta del Worker:", responseText);
+
+                let data;
+                try {
+                     data = JSON.parse(responseText);
+                } catch (parseError) {
+                     console.error("Error al parsear JSON:", parseError);
+                     console.error("Texto recibido:", responseText);
+                     totalAnimalesElement.innerText = "Error: Formato de datos inválido";
+                     return;
+                }
+
+                if (!data.ok) {
+                    console.error("Error recibido del backend:", data.error || "Error desconocido");
+                    totalAnimalesElement.innerText = `Error: ${data.error || "Comunicación fallida"}`;
+                    return;
+                }
+
+                console.log("Datos recibidos para gráfico:", data);
+
+                // Actualizar total
+                totalAnimalesElement.innerText = data.total || 0;
+
+                // Dibujar gráfico
+                dibujarGraficoInventario(data.porLote || {});
+
+            } catch (error) {
+                console.error("Error al comunicarse con el Worker:", error);
+                totalAnimalesElement.innerText = "Error: Comunicación fallida";
+            }
+        }
+
+        function dibujarGraficoInventario(datosPorLote){
+            console.log("Dibujando gráfico con datos:", datosPorLote);
+
+            const ctx = document.getElementById("graficoLotes").getContext("2d");
+
+            if (graficoLotes) {
+                graficoLotes.destroy();
+            }
+
+            if (Object.keys(datosPorLote).length === 0) {
+                console.warn("No hay datos para graficar.");
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.font = "16px Arial";
+                ctx.fillStyle = "#999";
+                ctx.textAlign = "center";
+                ctx.fillText("No hay datos para mostrar", ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+
+            const colores = [
+                "#1f77b4","#ff7f0e","#2ca02c","#d62728",
+                "#9467bd","#8c564b","#e377c2","#7f7f7f"
+            ];
+
+            graficoLotes = new Chart(ctx, {
+                type: "bar",
+                 {
+                    labels: Object.keys(datosPorLote),
+                    datasets: [{
+                        label: 'Animales',
+                         Object.values(datosPorLote),
+                        backgroundColor: colores.slice(0, Object.keys(datosPorLote).length),
+                        borderColor: "#000",
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            ticks:{ stepSize:1 },
+                            title: { display: true, text: 'Cantidad' }
+                        },
+                        x: {
+                            title: { display: true, text: 'Lote' }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
