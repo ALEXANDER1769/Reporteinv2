@@ -1,9 +1,11 @@
+<!-- reporte-inventario.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>PYSIGA - Reporte Inventario</title>
+    <title>Reporte de Inventario - PYSIGA</title>
     <style>
+        /* Tus estilos aquí */
         body {
             margin: 0;
             background: #f4f6f9;
@@ -21,15 +23,7 @@
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,.1);
             overflow: hidden;
-        }
-        .login-section {
-            padding: 30px;
-            text-align: center;
-            display: block;
-        }
-        .report-section {
-            padding: 30px;
-            display: none;
+            padding: 20px;
         }
         .card {
             background: #ffffff;
@@ -50,26 +44,6 @@
             font-weight: bold;
             color: #2c7be5;
         }
-        input[type="email"] {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        button {
-            background: #2c7be5;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:hover {
-            background: #256ac4;
-        }
         canvas {
             max-width: 100%;
             height: auto;
@@ -77,172 +51,217 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Sección de Login -->
-        <div id="loginSection" class="login-section">
-            <h2>PYSIGA - Reporte Inventario</h2>
-            <p>Gestión Ganadera Integral</p>
-            <input type="email" id="emailInput" placeholder="Correo registrado" required>
-            <button id="loginButton">Ingresar</button>
-        </div>
 
-        <!-- Sección de Reporte (oculta inicialmente) -->
-        <div id="reportSection" class="report-section">
-            <div class="card total">
-                <h2>Total de animales</h2>
-                <div id="totalAnimales" class="numero">Cargando...</div>
-            </div>
-
-            <div class="card">
-                <h3 style="margin-bottom:20px;color:#555">
-                    Cantidad de animales por lote
-                </h3>
-                <canvas id="graficoLotes"></canvas>
-            </div>
-        </div>
+<div class="container">
+    <h1>Reporte de Inventario</h1>
+    <!-- Card para el total -->
+    <div class="card total">
+        <h2>Total de animales</h2>
+        <div id="totalAnimales" class="numero">Cargando...</div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Card para el gráfico de lotes -->
+    <div class="card">
+        <h3 style="margin-bottom:20px;color:#555">
+            Cantidad de animales por lote
+        </h3>
+        <canvas id="graficoLotesCanvas"></canvas>
+    </div>
 
-    <script>
-        const WORKER_URL = "https://pysiga.d-alexjose.workers.dev"; // Asegúrate que apunte a tu worker
-        let graficoLotes = null;
+    <!-- Card para el gráfico de tipos -->
+    <div class="card">
+        <h3 style="margin-bottom:20px;color:#555">
+            Cantidad de animales por tipo
+        </h3>
+        <canvas id="graficoTiposCanvas"></canvas>
+    </div>
 
-        // Referencias a elementos DOM
-        const loginSection = document.getElementById('loginSection');
-        const reportSection = document.getElementById('reportSection');
-        const emailInput = document.getElementById('emailInput');
-        const loginButton = document.getElementById('loginButton');
-        const totalAnimalesElement = document.getElementById('totalAnimales');
+    <!-- Card para el gráfico histórico -->
+    <div class="card">
+        <h3 style="margin-bottom:20px;color:#555">
+            Histórico de Inventario
+        </h3>
+        <canvas id="graficoHistoricoCanvas"></canvas>
+    </div>
 
-        // Evento de login
-        loginButton.addEventListener('click', async () => {
-            const email = emailInput.value.trim();
-            if (!email) {
-                alert("Por favor, ingrese su correo.");
-                return;
-            }
+</div>
 
-            try {
-                // Guardar email en localStorage (opcional, para persistencia)
-                localStorage.setItem("email", email);
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const WORKER_URL = "https://pysiga.d-alexjose.workers.dev"; // Asegúrate que apunte a tu worker
+    let graficoLotes = null;
+    let graficoTipos = null;
+    let graficoHistorico = null;
 
-                // Mostrar sección de reporte y ocultar login
-                loginSection.style.display = 'none';
-                reportSection.style.display = 'block';
+    // Función para obtener el parámetro 'email' de la URL
+    function getEmailFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('email');
+    }
 
-                // Cargar datos
-                await cargarReporteInventario(email);
-
-            } catch (error) {
-                console.error("Error al iniciar sesión:", error);
-                alert("Error al conectar con el servidor. Por favor, intente nuevamente.");
-                // Volver a mostrar login si falla
-                loginSection.style.display = 'block';
-                reportSection.style.display = 'none';
-            }
-        });
-
-        async function cargarReporteInventario(email) {
-            console.log("Intentando cargar reporte para el email:", email);
-
-            try {
-                const res = await fetch(WORKER_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        accion: "reporteInventario",
-                        email: email
-                    })
-                });
-
-                console.log("Respuesta del Worker Status:", res.status);
-
-                const responseText = await res.text();
-                console.log("Respuesta bruta del Worker:", responseText);
-
-                let data;
-                try {
-                     data = JSON.parse(responseText);
-                } catch (parseError) {
-                     console.error("Error al parsear JSON:", parseError);
-                     console.error("Texto recibido:", responseText);
-                     totalAnimalesElement.innerText = "Error: Formato de datos inválido";
-                     return;
-                }
-
-                if (!data.ok) {
-                    console.error("Error recibido del backend:", data.error || "Error desconocido");
-                    totalAnimalesElement.innerText = `Error: ${data.error || "Comunicación fallida"}`;
-                    return;
-                }
-
-                console.log("Datos recibidos para gráfico:", data);
-
-                // Actualizar total
-                totalAnimalesElement.innerText = data.total || 0;
-
-                // Dibujar gráfico
-                dibujarGraficoInventario(data.porLote || {});
-
-            } catch (error) {
-                console.error("Error al comunicarse con el Worker:", error);
-                totalAnimalesElement.innerText = "Error: Comunicación fallida";
-            }
+    // Cargar el reporte de inventario
+    async function cargarReporteInventario() {
+        const email = getEmailFromUrl();
+        if (!email) {
+            console.error("No se encontró el email en la URL.");
+            document.getElementById("totalAnimales").innerText = "Error: Email no encontrado";
+            return;
         }
 
-        function dibujarGraficoInventario(datosPorLote){
-            console.log("Dibujando gráfico con datos:", datosPorLote);
+        console.log("Intentando cargar reporte para el email:", email);
 
-            const ctx = document.getElementById("graficoLotes").getContext("2d");
+        try {
+            const res = await fetch(WORKER_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    accion: "reporteInventario",
+                    email: email
+                })
+            });
 
-            if (graficoLotes) {
-                graficoLotes.destroy();
+            console.log("Respuesta del Worker Status:", res.status);
+
+            const responseText = await res.text(); // Obtener texto plano
+            console.log("Respuesta bruta del Worker:", responseText);
+
+            let data;
+            try {
+                 data = JSON.parse(responseText);
+            } catch (parseError) {
+                 console.error("Error al parsear JSON:", parseError);
+                 console.error("Texto recibido:", responseText);
+                 document.getElementById("totalAnimales").innerText = "Error: Formato de datos inválido";
+                 return;
             }
 
-            if (Object.keys(datosPorLote).length === 0) {
-                console.warn("No hay datos para graficar.");
-                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-                ctx.font = "16px Arial";
-                ctx.fillStyle = "#999";
-                ctx.textAlign = "center";
-                ctx.fillText("No hay datos para mostrar", ctx.canvas.width / 2, ctx.canvas.height / 2);
+            if (!data.ok) {
+                console.error("Error recibido del backend:", data.error || "Error desconocido");
+                document.getElementById("totalAnimales").innerText = `Error: ${data.error || "Comunicación fallida"}`;
                 return;
             }
 
-            const colores = [
-                "#1f77b4","#ff7f0e","#2ca02c","#d62728",
-                "#9467bd","#8c564b","#e377c2","#7f7f7f"
-            ];
+            console.log("Datos recibidos para reporte:", data);
 
-            graficoLotes = new Chart(ctx, {
-                type: "bar",
-                 {
-                    labels: Object.keys(datosPorLote),
-                    datasets: [{
-                        label: 'Animales',
-                         Object.values(datosPorLote),
-                        backgroundColor: colores.slice(0, Object.keys(datosPorLote).length),
-                        borderColor: "#000",
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { 
-                            beginAtZero: true, 
-                            ticks:{ stepSize:1 },
-                            title: { display: true, text: 'Cantidad' }
-                        },
-                        x: {
-                            title: { display: true, text: 'Lote' }
-                        }
+            // Actualizar total
+            document.getElementById("totalAnimales").innerText = data.total || 0;
+
+            // Dibujar gráficos
+            dibujarGraficoBarras('graficoLotesCanvas', 'Animales por Lote', data.porLote || {});
+            dibujarGraficoBarras('graficoTiposCanvas', 'Animales por Tipo', data.porTipo || {});
+            dibujarGraficoLineas('graficoHistoricoCanvas', 'Histórico de Inventario', data.historico || []);
+
+        } catch (error) {
+            console.error("Error al comunicarse con el Worker:", error);
+            document.getElementById("totalAnimales").innerText = "Error: Comunicación fallida";
+        }
+    }
+
+    function dibujarGraficoBarras(canvasId, titulo, datos){
+        console.log("Dibujando gráfico de barras para:", canvasId, "con datos:", datos);
+
+        const ctx = document.getElementById(canvasId).getContext("2d");
+
+        // Destruir el gráfico anterior si existe
+        const chartVarName = `grafico${canvasId.charAt(0).toUpperCase() + canvasId.slice(1).replace('Canvas', '')}`;
+        if (window[chartVarName]) {
+            window[chartVarName].destroy();
+        }
+
+        if (Object.keys(datos).length === 0) {
+            console.warn("No hay datos para graficar en", canvasId);
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.font = "16px Arial";
+            ctx.fillStyle = "#999";
+            ctx.textAlign = "center";
+            ctx.fillText("No hay datos para mostrar", ctx.canvas.width / 2, ctx.canvas.height / 2);
+            return;
+        }
+
+        const colores = [
+            "#1f77b4","#ff7f0e","#2ca02c","#d62728",
+            "#9467bd","#8c564b","#e377c2","#7f7f7f"
+        ];
+
+        window[chartVarName] = new Chart(ctx, {
+            type: "bar",
+             {
+                labels: Object.keys(datos),
+                datasets: [{
+                    label: titulo,
+                     Object.values(datos),
+                    backgroundColor: colores.slice(0, Object.keys(datos).length),
+                    borderColor: "#000",
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: true } },
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        ticks:{ stepSize:1 },
+                        title: { display: true, text: 'Cantidad' }
+                    },
+                     x: {
+                        title: { display: true, text: 'Categoría' } // Cambia según el título
                     }
                 }
-            });
+            }
+        });
+    }
+
+    function dibujarGraficoLineas(canvasId, titulo, datos) {
+        console.log("Dibujando gráfico de líneas para:", canvasId, "con datos:", datos);
+
+        const ctx = document.getElementById(canvasId).getContext("2d");
+
+        // Destruir el gráfico anterior si existe
+        const chartVarName = `grafico${canvasId.charAt(0).toUpperCase() + canvasId.slice(1).replace('Canvas', '')}`;
+        if (window[chartVarName]) {
+            window[chartVarName].destroy();
         }
-    </script>
+
+        if (datos.length === 0) {
+            console.warn("No hay datos para graficar en", canvasId);
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.font = "16px Arial";
+            ctx.fillStyle = "#999";
+            ctx.textAlign = "center";
+            ctx.fillText("No hay datos para mostrar", ctx.canvas.width / 2, ctx.canvas.height / 2);
+            return;
+        }
+
+        // Suponiendo que 'datos' es un array de objetos como {fecha: "YYYY-MM-DD", total: numero}
+        const fechas = datos.map(d => d.fecha);
+        const valores = datos.map(d => d.total);
+
+        window[chartVarName] = new Chart(ctx, {
+            type: 'line',
+             {
+              labels: fechas,
+              datasets: [{
+                label: titulo,
+                 valores,
+                fill: false,
+                borderColor: "#4CAF50",
+                tension: 0.1
+              }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: true } },
+                scales: {
+                  y: { beginAtZero: true }
+                }
+            }
+        });
+    }
+
+    // Iniciar la carga
+    cargarReporteInventario();
+</script>
+
 </body>
 </html>
