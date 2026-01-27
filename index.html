@@ -185,11 +185,11 @@
 
         window[chartVarName] = new Chart(ctx, {
             type: "bar",
-             {
+            data: { // <-- CORREGIDO
                 labels: Object.keys(datos),
                 datasets: [{
                     label: titulo,
-                     Object.values(datos),
+                    data: Object.values(datos), // <-- CORREGIDO
                     backgroundColor: colores.slice(0, Object.keys(datos).length),
                     borderColor: "#000",
                     borderWidth: 1
@@ -239,11 +239,11 @@
 
         window[chartVarName] = new Chart(ctx, {
             type: 'line',
-             {
+            data: { // <-- CORREGIDO
               labels: fechas,
               datasets: [{
                 label: titulo,
-                 valores,
+                data: valores, // <-- CORREGIDO
                 fill: false,
                 borderColor: "#4CAF50",
                 tension: 0.1
