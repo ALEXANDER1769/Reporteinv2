@@ -120,7 +120,11 @@
                 })
             });
 
-            console.log("Respuesta del Worker Status:", res.status);
+            // --- MANEJO DE ERRORES DE RED/HTTP ---
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            // -------------------------------------
 
             const responseText = await res.text(); // Obtener texto plano
             console.log("Respuesta bruta del Worker:", responseText);
@@ -135,11 +139,13 @@
                  return;
             }
 
-            if (!data.ok) {
-                console.error("Error recibido del backend:", data.error || "Error desconocido");
-                document.getElementById("totalAnimales").innerText = `Error: ${data.error || "Comunicación fallida"}`;
+            // --- MANEJO DE ERRORES DE NEGOCIO ---
+            if (!data || typeof data !== 'object' || !data.ok) {
+                console.error("Error recibido del backend:", data?.error || "Respuesta inválida o sin 'ok: true'");
+                document.getElementById("totalAnimales").innerText = `Error: ${data?.error || "Comunicación fallida"}`;
                 return;
             }
+            // ------------------------------------
 
             console.log("Datos recibidos para reporte:", data);
 
