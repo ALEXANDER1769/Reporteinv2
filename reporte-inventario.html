@@ -2,170 +2,184 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Reporte de Inventario</title>
+<title>Reporte de Inventario - PYSIGA</title>
 <style>
 :root {
---verde: #2f6f4e;
---azul: #2c4f7c;
---fondo: #f7f9f8;
+  --verde: #2f6f4e;
+  --azul: #2c4f7c;
+  --fondo: #f7f9f8;
 }
 body {
-font-family: system-ui, Arial;
-background: var(--fondo);
-margin: 0;
-padding: 20px;
+  font-family: system-ui, Arial;
+  background: var(--fondo);
+  margin: 0;
+  padding: 20px;
 }
 .container {
-max-width: 1100px;
-margin: auto;
-background: white;
-border-radius: 10px;
-padding: 25px;
-box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  max-width: 1100px;
+  margin: auto;
+  background: white;
+  border-radius: 10px;
+  padding: 25px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 h1 {
-color: var(--azul);
-margin-bottom: 15px;
+  color: var(--azul);
+  margin-bottom: 15px;
 }
 #loader {
-text-align: center;
-padding: 40px;
-font-size: 18px;
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
 }
 .vaca {
-font-size: 50px;
-animation: mover 1s infinite alternate;
+  font-size: 50px;
+  animation: mover 1s infinite alternate;
 }
 @keyframes mover {
-from { transform: translateX(-5px) }
-to { transform: translateX(5px) }
+  from { transform: translateX(-5px) }
+  to { transform: translateX(5px) }
 }
 table {
-width: 100%;
-border-collapse: collapse;
-margin-top: 20px;
-font-size: 14px;
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 14px;
 }
 th {
-background: var(--verde);
-color: white;
-padding: 10px;
-text-align: left;
+  background: var(--verde);
+  color: white;
+  padding: 10px;
+  text-align: left;
 }
 td {
-padding: 8px;
-border-bottom: 1px solid #ddd;
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
 }
 .btn-volver {
-background: var(--azul);
-color: white;
-border: none;
-padding: 10px 16px;
-border-radius: 6px;
-cursor: pointer;
-margin-top: 20px;
-font-size: 14px;
+  background: var(--azul);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 20px;
+  font-size: 14px;
 }
 .btn-volver:hover {
-opacity: 0.9;
+  opacity: 0.9;
 }
 .error {
-color: #c0392b;
-padding: 15px;
-background: #fadbd8;
-border-radius: 6px;
-margin: 20px 0;
-display: none;
+  color: #c0392b;
+  padding: 15px;
+  background: #fadbd8;
+  border-radius: 6px;
+  margin: 20px 0;
+  display: none;
 }
 </style>
 </head>
 <body>
 <div class="container">
-<h1>📊 Reporte de Inventario</h1>
-<div id="loader">
-<div class="vaca">🐄</div>
-<div>Cargando datos ganaderos...</div>
-</div>
-<div id="contenido" style="display:none">
-<div id="tabla-container"></div>
-<button class="btn-volver" onclick="volverPanel()">⬅ Volver al panel</button>
-</div>
-<div id="error" class="error"></div>
+  <h1>📊 Reporte de Inventario</h1>
+  <div id="loader">
+    <div class="vaca">🐄</div>
+    <div>Cargando datos ganaderos...</div>
+  </div>
+  <div id="contenido" style="display:none">
+    <div id="tabla-container"></div>
+    <button class="btn-volver" onclick="volverPanel()">⬅ Volver al panel</button>
+  </div>
+  <div id="error" class="error"></div>
 </div>
 
 <script>
 (function() {
-// 1. Leer email desde URL
-const params = new URLSearchParams(window.location.search);
-const email = params.get("email");
-if (!email) {
-mostrarError("Acceso no autorizado. Inicie sesión desde el panel principal.");
-return;
-}
+  const params = new URLSearchParams(window.location.search);
+  const email = params.get("email");
+  
+  if (!email) {
+    mostrarError("Acceso no autorizado. Inicie sesión desde el panel principal.");
+    return;
+  }
 
-// 2. Cargar datos con POST (CORREGIDO - SIN ESPACIOS)
-fetch("https://pysiga.d-alexjose.workers.dev", {
-method: "POST",
-headers: {
-"Content-Type": "application/json"
-},
-body: JSON.stringify({
-accion: "reporteInventario",
-email: email
-})
-})
-.then(response => {
-if (!response.ok) throw new Error("Error en el servidor");
-return response.json();
-})
-.then(data => {
-if (!data.ok || !data.datos || data.datos.length === 0) {
-mostrarError("No hay datos de inventario disponibles para este usuario");
-return;
-}
-renderizarTabla(data.datos);
-})
-.catch(err => {
-console.error("Error:", err);
-mostrarError("No se pudieron cargar los datos. Verifique su conexión.");
-});
+  // FETCH CORREGIDO: POST con estructura que espera tu Apps Script
+  fetch("https://pysiga.d-alexjose.workers.dev", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      accion: "reporteInventario",
+      email: email
+    })
+  })
+  .then(response => {
+    if (!response.ok) throw new Error("Error del servidor: " + response.status);
+    return response.json();
+  })
+  .then(data => {
+    console.log("Respuesta del servidor:", data); // DEBUG: ver estructura real
+    
+    // VALIDACIÓN CORREGIDA: tu Apps Script devuelve "ok" y "datos"
+    if (!data.ok) {
+      mostrarError("Error del servidor: " + (data.error || "Respuesta inválida"));
+      return;
+    }
+    
+    // TU APPS SCRIPT DEVUELVE: { ok: true, datos: [ {...}, {...} ] }
+    const registros = data.datos || data.filas || [];
+    
+    if (!registros || registros.length === 0) {
+      mostrarError("No se encontraron registros de inventario para este usuario");
+      return;
+    }
+    
+    renderizarTabla(registros);
+  })
+  .catch(err => {
+    console.error("Error completo:", err);
+    mostrarError("Error al cargar los datos: " + err.message);
+  });
 
-// 3. Funciones auxiliares
-function renderizarTabla(datos) {
-document.getElementById("loader").style.display = "none";
-document.getElementById("contenido").style.display = "block";
-let html = `<table>
-<thead>
-<tr>
-<th>Lote</th>
-<th>Tipo</th>
-<th>Cantidad</th>
-<th>Peso Total (kg)</th>
-</tr>
-</thead>
-<tbody>`;
-datos.forEach(row => {
-html += `<tr>
-<td>${row.Lote || row.lote || '-'}</td>
-<td>${row.Tipo || row.tipo || '-'}</td>
-<td>${row.Cantidad || row.cantidad || '0'}</td>
-<td>${row["Peso Total"] || row.peso_total || '0'}</td>
-</tr>`;
-});
-html += `</tbody></table>`;
-document.getElementById("tabla-container").innerHTML = html;
-}
+  function renderizarTabla(registros) {
+    document.getElementById("loader").style.display = "none";
+    document.getElementById("contenido").style.display = "block";
+    
+    let html = `<table>
+      <thead>
+        <tr>
+          <th>Lote</th>
+          <th>Tipo</th>
+          <th>Cantidad</th>
+          <th>Peso Total (kg)</th>
+        </tr>
+      </thead>
+      <tbody>`;
+    
+    registros.forEach(row => {
+      html += `<tr>
+        <td>${row.Lote || row.lote || '-'}</td>
+        <td>${row.Tipo || row.tipo || '-'}</td>
+        <td>${row.Cantidad || row.cantidad || '0'}</td>
+        <td>${row["Peso Total"] || row["peso total"] || row.peso_total || '0'}</td>
+      </tr>`;
+    });
+    
+    html += `</tbody></table>`;
+    document.getElementById("tabla-container").innerHTML = html;
+  }
 
-function mostrarError(mensaje) {
-document.getElementById("loader").style.display = "none";
-const err = document.getElementById("error");
-err.textContent = mensaje;
-err.style.display = "block";
-}
+  function mostrarError(mensaje) {
+    document.getElementById("loader").style.display = "none";
+    const err = document.getElementById("error");
+    err.textContent = mensaje;
+    err.style.display = "block";
+  }
 
-function volverPanel() {
-window.location.href = "https://www.pysiga.com";
-}
+  function volverPanel() {
+    window.location.href = "https://www.pysiga.com";
+  }
 })();
 </script>
 </body>
