@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Reporte de Inventario</title>
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#f4f6f9;
+  margin:0;
+  padding:20px;
+}
+
+h1{
+  color:#2f6f4e;
+}
+
+#contenedor{
+  max-width:900px;
+  margin:auto;
+  background:#fff;
+  padding:20px;
+  border-radius:6px;
+  box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:15px;
+}
+
+th,td{
+  padding:10px;
+  border:1px solid #ddd;
+  text-align:left;
+}
+
+th{
+  background:#2f6f4e;
+  color:#fff;
+}
+
+.boton{
+  margin-top:20px;
+  padding:10px 16px;
+  background:#2f6f4e;
+  color:#fff;
+  border:none;
+  border-radius:4px;
+  cursor:pointer;
+}
+
+.boton:hover{
+  background:#245a3f;
+}
+</style>
+</head>
+
+<body>
+
+<div id="contenedor">
+  <h1>Reporte de Inventario</h1>
+  <p id="usuario"></p>
+
+  <div id="estado">Cargando datos…</div>
+
+  <table id="tabla" style="display:none">
+    <thead>
+      <tr>
+        <th>Lote</th>
+        <th>Categoría</th>
+        <th>Cantidad</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <button class="boton" onclick="volver()">⬅ Volver al panel</button>
+</div>
+
+<script>
+(function(){
+
+  /* 1️⃣ Leer email desde la URL */
+  const p = new URLSearchParams(location.search);
+  const email = p.get("email");
+
+  if(!email){
+    document.body.innerHTML = "<h3>Acceso no autorizado</h3>";
+    return;
+  }
+
+  document.getElementById("usuario").textContent =
+    "Usuario: " + email;
+
+  /* 2️⃣ Llamada al backend (Worker / GAS) */
+  const endpoint =
+    "https://pysiga.d-alexjose.workers.dev/?reporte=inventario&email="
+    + encodeURIComponent(email);
+
+  fetch(endpoint)
+    .then(r => r.json())
+    .then(data => {
+
+      if(!data.ok){
+        document.getElementById("estado").textContent =
+          "No hay datos disponibles";
+        return;
+      }
+
+      const tbody =
+        document.querySelector("#tabla tbody");
+
+      data.registros.forEach(row => {
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td>${row.lote}</td>
+          <td>${row.categoria}</td>
+          <td>${row.cantidad}</td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById("estado").style.display="none";
+      document.getElementById("tabla").style.display="table";
+    })
+    .catch(err=>{
+      document.getElementById("estado").textContent =
+        "Error al cargar el reporte";
+      console.error(err);
+    });
+
+})();
+
+/* 3️⃣ Botón volver */
+function volver(){
+  location.href =
+    "https://reporteinv2.pages.dev/redirect-panel.html?email="
+    + encodeURIComponent(
+        new URLSearchParams(location.search).get("email")
+      );
+}
+</script>
+
+</body>
+</html>
