@@ -75,6 +75,7 @@ padding: 15px;
 background: #fadbd8;
 border-radius: 6px;
 margin: 20px 0;
+display: none;
 }
 </style>
 </head>
@@ -89,7 +90,7 @@ margin: 20px 0;
 <div id="tabla-container"></div>
 <button class="btn-volver" onclick="volverPanel()">⬅ Volver al panel</button>
 </div>
-<div id="error" class="error" style="display:none"></div>
+<div id="error" class="error"></div>
 </div>
 
 <script>
@@ -102,7 +103,7 @@ mostrarError("Acceso no autorizado. Inicie sesión desde el panel principal.");
 return;
 }
 
-// 2. Cargar datos con POST (CORREGIDO)
+// 2. Cargar datos con POST (CORREGIDO - SIN ESPACIOS)
 fetch("https://pysiga.d-alexjose.workers.dev", {
 method: "POST",
 headers: {
@@ -157,8 +158,9 @@ document.getElementById("tabla-container").innerHTML = html;
 
 function mostrarError(mensaje) {
 document.getElementById("loader").style.display = "none";
-document.getElementById("error").textContent = mensaje;
-document.getElementById("error").style.display = "block";
+const err = document.getElementById("error");
+err.textContent = mensaje;
+err.style.display = "block";
 }
 
 function volverPanel() {
