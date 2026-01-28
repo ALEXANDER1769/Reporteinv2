@@ -3,33 +3,59 @@
 <head>
 <meta charset="UTF-8">
 <title>Redireccionando…</title>
+<style>
+body {
+font-family: system-ui, Arial;
+background: #f7f9f8;
+display: flex;
+justify-content: center;
+align-items: center;
+height: 100vh;
+margin: 0;
+}
+.card {
+background: white;
+padding: 30px;
+border-radius: 12px;
+box-shadow: 0 4px 10px rgba(0,0,0,.1);
+text-align: center;
+}
+.vaca {
+font-size: 40px;
+animation: mover 1s infinite alternate;
+}
+@keyframes mover {
+from { transform: translateX(-5px) }
+to { transform: translateX(5px) }
+}
+</style>
 </head>
-
 <body>
+<div class="card">
+<div class="vaca">🐄</div>
 <p>Redireccionando al reporte…</p>
-
+</div>
 <script>
 (function(){
-  const p=new URLSearchParams(location.search);
-  const email=p.get("email");
-  const tipo=p.get("tipo");
+const p = new URLSearchParams(location.search);
+const email = p.get("email");
+const tipo = p.get("tipo");
 
-  if(!email||!tipo){
-    document.body.innerHTML="<h3>Error de acceso</h3>";
-    return;
-  }
+if(!email || !tipo){
+document.body.innerHTML = "<div class='card'><h3>Error: acceso inválido</h3></div>";
+return;
+}
 
-  let destino="";
-  if(tipo==="inventario"){
-    destino="https://reporteinv2.pages.dev/reporte-inventario.html";
-  }else{
-    document.body.innerHTML="<h3>Reporte no válido</h3>";
-    return;
-  }
+let destino = "";
+if(tipo === "inventario"){
+destino = "https://reporteinv2.pages.dev/reporte-inventario.html";
+}else{
+document.body.innerHTML = "<div class='card'><h3>Reporte no disponible</h3></div>";
+return;
+}
 
-  location.replace(destino+"?email="+encodeURIComponent(email));
+location.replace(destino + "?email=" + encodeURIComponent(email));
 })();
 </script>
-
 </body>
 </html>
