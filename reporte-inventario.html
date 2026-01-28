@@ -95,6 +95,7 @@ td {
 
 <script>
 (function() {
+  // 1️⃣ Leer email desde URL
   const params = new URLSearchParams(window.location.search);
   const email = params.get("email");
   
@@ -103,7 +104,7 @@ td {
     return;
   }
 
-  // FETCH CORREGIDO: POST con estructura que espera tu Apps Script
+  // 2️⃣ FETCH CORREGIDO: POST con estructura que espera tu Apps Script
   fetch("https://pysiga.d-alexjose.workers.dev", {
     method: "POST",
     headers: {
@@ -115,20 +116,21 @@ td {
     })
   })
   .then(response => {
+    console.log("Respuesta HTTP:", response.status, response.ok);
     if (!response.ok) throw new Error("Error del servidor: " + response.status);
     return response.json();
   })
   .then(data => {
-    console.log("Respuesta del servidor:", data); // DEBUG: ver estructura real
+    console.log("Datos recibidos:", data); // DEBUG: ver estructura real
     
-    // VALIDACIÓN CORREGIDA: tu Apps Script devuelve "ok" y "datos"
+    // 3️⃣ VALIDACIÓN CORREGIDA: tu backend devuelve { ok: true, historico: [...] }
     if (!data.ok) {
       mostrarError("Error del servidor: " + (data.error || "Respuesta inválida"));
       return;
     }
     
-    // TU APPS SCRIPT DEVUELVE: { ok: true, datos: [ {...}, {...} ] }
-    const registros = data.datos || data.filas || [];
+    // 4️⃣ CORRECCIÓN CLAVE: usar 'historico' en lugar de 'datos'
+    const registros = data.historico || [];
     
     if (!registros || registros.length === 0) {
       mostrarError("No se encontraron registros de inventario para este usuario");
@@ -142,6 +144,7 @@ td {
     mostrarError("Error al cargar los datos: " + err.message);
   });
 
+  // 5️⃣ Renderizar tabla con los datos
   function renderizarTabla(registros) {
     document.getElementById("loader").style.display = "none";
     document.getElementById("contenido").style.display = "block";
@@ -170,6 +173,7 @@ td {
     document.getElementById("tabla-container").innerHTML = html;
   }
 
+  // 6️⃣ Mostrar error
   function mostrarError(mensaje) {
     document.getElementById("loader").style.display = "none";
     const err = document.getElementById("error");
@@ -177,6 +181,7 @@ td {
     err.style.display = "block";
   }
 
+  // 7️⃣ Botón volver al panel
   function volverPanel() {
     window.location.href = "https://www.pysiga.com";
   }
