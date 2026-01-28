@@ -162,7 +162,7 @@ canvas {
       </div>
     </div>
     
-    <button class="btn-volver" onclick="volverPanel()">⬅ Volver al panel principal</button>
+    <button class="btn-volver" id="btnVolver">⬅ Volver al panel principal</button>
   </div>
   
   <div id="error" class="error"></div>
@@ -234,13 +234,19 @@ Chart.register(ChartDataLabels);
     // Mostrar contenido
     document.getElementById("loader").style.display = "none";
     document.getElementById("contenido").style.display = "block";
+    
+    // 4️⃣ AGREGAR EVENT LISTENER AL BOTÓN (CORREGIDO)
+    document.getElementById("btnVolver").addEventListener("click", function() {
+      console.log("🔴 Botón volver clickeado - Redirigiendo a pysiga.com");
+      window.open("https://www.pysiga.com", "_self");
+    });
   })
   .catch(err => {
     console.error("Error completo:", err);
     mostrarError("Error al cargar los datos: " + err.message);
   });
 
-  // 4️⃣ GRÁFICO POR LOTE (CON CANTIDADES SIEMPRE VISIBLES)
+  // 5️⃣ GRÁFICO POR LOTE (CON CANTIDADES SIEMPRE VISIBLES)
   function renderizarGraficoLote(datos) {
     // Convertir el objeto a arrays de claves y valores
     const lotes = Object.keys(datos);
@@ -257,11 +263,11 @@ Chart.register(ChartDataLabels);
     
     new Chart(document.getElementById("graficoLote"), {
       type: 'bar',
-      data: {
+       {
         labels: lotes,
         datasets: [{
           label: 'Cantidad de animales',
-          data: cantidades,
+           cantidades,
           backgroundColor: lotes.map((_, i) => 
             `hsl(${i * 40}, 60%, 55%)`
           ),
@@ -308,7 +314,7 @@ Chart.register(ChartDataLabels);
     });
   }
 
-  // 5️⃣ GRÁFICO POR TIPO (CON CANTIDADES Y PORCENTAJES SIEMPRE VISIBLES)
+  // 6️⃣ GRÁFICO POR TIPO (CON CANTIDADES Y PORCENTAJES SIEMPRE VISIBLES)
   function renderizarGraficoTipo(datos) {
     // Convertir el objeto a arrays de claves y valores
     const tipos = Object.keys(datos);
@@ -325,10 +331,10 @@ Chart.register(ChartDataLabels);
     
     new Chart(document.getElementById("graficoTipo"), {
       type: 'doughnut',
-      data: {
+       {
         labels: tipos,
         datasets: [{
-          data: cantidades,
+           cantidades,
           backgroundColor: tipos.map((_, i) => 
             `hsl(${i * 60 + 200}, 70%, 60%)`
           ),
@@ -372,7 +378,7 @@ Chart.register(ChartDataLabels);
     });
   }
 
-  // 6️⃣ GRÁFICO DE HISTÓRICO (CORREGIDO - EXTRAER DATOS REALES)
+  // 7️⃣ GRÁFICO DE HISTÓRICO (CORREGIDO - EXTRAER DATOS REALES)
   function renderizarGraficoHistorico(historico) {
     console.log("📈 Histórico completo:", historico);
     console.log("📈 Histórico length:", historico.length);
@@ -419,11 +425,11 @@ Chart.register(ChartDataLabels);
     
     new Chart(document.getElementById("graficoHistorico"), {
       type: 'line',
-      data: {
+       {
         labels: fechas,
         datasets: [{
           label: 'Cantidad total',
-          data: cantidades,
+           cantidades,
           borderColor: '#2f6f4e',
           backgroundColor: 'rgba(47, 111, 78, 0.1)',
           borderWidth: 3,
@@ -470,18 +476,12 @@ Chart.register(ChartDataLabels);
     });
   }
 
-  // 7️⃣ FUNCIONES AUXILIARES
+  // 8️⃣ FUNCIONES AUXILIARES
   function mostrarError(mensaje) {
     document.getElementById("loader").style.display = "none";
     const err = document.getElementById("error");
     err.textContent = mensaje;
     err.style.display = "block";
-  }
-
-  function volverPanel() {
-    // REDIRECCIÓN CORREGIDA: usar window.open para evitar problemas de seguridad
-    console.log("🔴 Botón volver clickeado - Redirigiendo a pysiga.com");
-    window.open("https://www.pysiga.com", "_self");
   }
 })();
 </script>
