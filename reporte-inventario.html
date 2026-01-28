@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Reporte de Inventario - PYSIGA</title>
+<!-- Chart.js + DataLabels (CARGAR EN ORDEN) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 <style>
@@ -216,7 +217,7 @@ canvas {
     document.getElementById("total-general").textContent = total;
     renderizarGraficoLote(porLote);
     renderizarGraficoTipo(porTipo);
-    renderizarGraficoLinea(historico);
+    renderizarGraficoHistorico(historico);
     
     // Mostrar contenido
     document.getElementById("loader").style.display = "none";
@@ -227,11 +228,15 @@ canvas {
     mostrarError("Error al cargar los datos: " + err.message);
   });
 
-  // 4️⃣ GRÁFICO POR LOTE (CON CANTIDADES EN BARRAS)
+  // 4️⃣ GRÁFICO POR LOTE (CON CANTIDADES EN BARRAS - CORREGIDO)
   function renderizarGraficoLote(datos) {
     // Convertir el objeto a arrays de claves y valores
     const lotes = Object.keys(datos);
     const cantidades = Object.values(datos);
+    
+    console.log("Datos por Lote:", datos);
+    console.log("Lotes:", lotes);
+    console.log("Cantidades:", cantidades);
     
     if (lotes.length === 0) {
       document.getElementById("graficoLote").parentElement.innerHTML = 
@@ -269,7 +274,8 @@ canvas {
             display: true,
             color: '#000',
             font: {
-              weight: 'bold'
+              weight: 'bold',
+              size: 14
             },
             formatter: (value) => value
           }
@@ -289,11 +295,15 @@ canvas {
     });
   }
 
-  // 5️⃣ GRÁFICO POR TIPO (CON CANTIDADES EN SECCIONES)
+  // 5️⃣ GRÁFICO POR TIPO (CON CANTIDADES Y PORCENTAJES - CORREGIDO)
   function renderizarGraficoTipo(datos) {
     // Convertir el objeto a arrays de claves y valores
     const tipos = Object.keys(datos);
     const cantidades = Object.values(datos);
+    
+    console.log("Datos por Tipo:", datos);
+    console.log("Tipos:", tipos);
+    console.log("Cantidades:", cantidades);
     
     if (tipos.length === 0) {
       document.getElementById("graficoTipo").parentElement.innerHTML = 
@@ -334,12 +344,13 @@ canvas {
             display: true,
             color: '#fff',
             font: {
-              weight: 'bold'
+              weight: 'bold',
+              size: 12
             },
             formatter: (value, context) => {
               const total = context.dataset.data.reduce((a, b) => a + b, 0);
               const percentage = Math.round((value / total) * 100);
-              return `${value} (${percentage}%)`;
+              return `${value}\n(${percentage}%)`;
             }
           }
         }
@@ -347,8 +358,10 @@ canvas {
     });
   }
 
-  // 6️⃣ GRÁFICO DE HISTÓRICO (LINEA)
-  function renderizarGraficoLinea(historico) {
+  // 6️⃣ GRÁFICO DE HISTÓRICO (CORREGIDO - EXTRAER DATOS REALES)
+  function renderizarGraficoHistorico(historico) {
+    console.log("Historico completo:", historico);
+    
     if (historico.length === 0) {
       document.getElementById("graficoHistorico").parentElement.innerHTML = 
         "<p style='text-align:center;color:#999'>No hay datos históricos</p>";
@@ -357,8 +370,20 @@ canvas {
     
     // Tomar últimos 20 registros para no saturar
     const ultimos = historico.slice(-20);
-    const fechas = ultimos.map(r => r.fecha || r.Fecha || 'Sin fecha');
-    const cantidades = ultimos.map(r => parseInt(r.cantidad || r.Cantidad || 0));
+    
+    // EXTRAER DATOS CORRECTAMENTE (probando múltiples nombres de campo)
+    const fechas = ultimos.map(r => {
+      return r.fecha || r.Fecha || r["Fecha/Hora"] || r["fecha/hora"] || 'Sin fecha';
+    });
+    
+    const cantidades = ultimos.map(r => {
+      // Probar múltiples nombres de campo para cantidad
+      const cantidad = r.cantidad || r.Cantidad || r["TOTAL GENERAL"] || r["total general"] || 0;
+      return parseInt(cantidad);
+    });
+    
+    console.log("Fechas extraídas:", fechas);
+    console.log("Cantidades extraídas:", cantidades);
     
     new Chart(document.getElementById("graficoHistorico"), {
       type: 'line',
@@ -373,18 +398,22 @@ canvas {
           fill: true,
           tension: 0.3,
           pointRadius: 4,
-          pointBackgroundColor: '#2f6f4e'
+          pointBackgroundColor: '#2f6f4e',
+          pointHoverRadius: 6
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
+          legend: { display: true },
           tooltip: {
             callbacks: {
               label: context => `Cantidad: ${context.parsed.y}`
             }
+          },
+          datalabels: {
+            display: false // No mostrar en gráfico de línea
           }
         },
         scales: {
@@ -395,14 +424,18 @@ canvas {
           },
           x: {
             title: { display: true, text: 'Fecha' },
-            grid: { display: false }
+            grid: { display: false },
+            ticks: {
+              maxRotation: 45,
+              minRotation: 45
+            }
           }
         }
       }
     });
   }
 
-  // 8️⃣ FUNCIONES AUXILIARES
+  // 7️⃣ FUNCIONES AUXILIARES
   function mostrarError(mensaje) {
     document.getElementById("loader").style.display = "none";
     const err = document.getElementById("error");
@@ -411,6 +444,7 @@ canvas {
   }
 
   function volverPanel() {
+    // REDIRECCIÓN CORREGIDA: volver a Google Sites
     window.location.href = "https://www.pysiga.com";
   }
 })();
