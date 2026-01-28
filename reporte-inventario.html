@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>Reporte de Inventario - PYSIGA</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 <style>
 :root {
   --verde: #2f6f4e;
@@ -79,28 +80,6 @@ canvas {
   from { transform: translateX(-8px) rotate(-5deg); }
   to { transform: translateX(8px) rotate(5deg); }
 }
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-  font-size: 14px;
-  overflow-x: auto;
-}
-th {
-  background: var(--verde);
-  color: white;
-  padding: 10px;
-  text-align: left;
-  position: sticky;
-  top: 0;
-}
-td {
-  padding: 9px;
-  border-bottom: 1px solid #eee;
-}
-tr:hover td {
-  background: #f9f9f9;
-}
 .btn-volver {
   background: var(--azul);
   color: white;
@@ -173,18 +152,12 @@ tr:hover td {
       </div>
     </div>
     
-    <!-- GRÁFICO DE EVOLUCIÓN (HISTÓRICO) -->
+    <!-- GRÁFICO DE HISTÓRICO -->
     <div class="section">
-      <h2>Evolución de Pesos</h2>
+      <h2>Historial de Inventario</h2>
       <div class="grafico-container">
         <canvas id="graficoHistorico"></canvas>
       </div>
-    </div>
-    
-    <!-- TABLA DETALLADA -->
-    <div class="section">
-      <h2>Detalle del Histórico</h2>
-      <div id="tabla-container"></div>
     </div>
     
     <button class="btn-volver" onclick="volverPanel()">⬅ Volver al panel principal</button>
@@ -228,11 +201,11 @@ tr:hover td {
       return;
     }
     
-    // 3️⃣ CORRECCIÓN CLAVE: usar las propiedades correctas (con mayúsculas)
+    // 3️⃣ CORRECCIÓN CLAVE: usar las propiedades correctas de tu estructura
     const total = data.total || 0;
-    const porLote = data.porLote || {};  // ✅ porLote (L mayúscula)
-    const porTipo = data.porTipo || {};  // ✅ porTipo (T mayúscula)
-    const historico = data.historico || [];  // ✅ historico (todo minúsculas)
+    const porLote = data.porLote || {};
+    const porTipo = data.porTipo || {};
+    const historico = data.historico || [];
     
     if (total === 0 && historico.length === 0) {
       mostrarError("No se encontraron registros de inventario para este usuario");
@@ -243,8 +216,7 @@ tr:hover td {
     document.getElementById("total-general").textContent = total;
     renderizarGraficoLote(porLote);
     renderizarGraficoTipo(porTipo);
-    renderizarGraficoHistorico(historico);
-    renderizarTabla(historico);
+    renderizarGraficoLinea(historico);
     
     // Mostrar contenido
     document.getElementById("loader").style.display = "none";
@@ -255,7 +227,7 @@ tr:hover td {
     mostrarError("Error al cargar los datos: " + err.message);
   });
 
-  // 4️⃣ GRÁFICO POR LOTE (CORREGIDO)
+  // 4️⃣ GRÁFICO POR LOTE (CON CANTIDADES EN BARRAS)
   function renderizarGraficoLote(datos) {
     // Convertir el objeto a arrays de claves y valores
     const lotes = Object.keys(datos);
@@ -292,6 +264,14 @@ tr:hover td {
             callbacks: {
               label: context => `${context.parsed.y} animales`
             }
+          },
+          datalabels: {
+            display: true,
+            color: '#000',
+            font: {
+              weight: 'bold'
+            },
+            formatter: (value) => value
           }
         },
         scales: {
@@ -309,7 +289,7 @@ tr:hover td {
     });
   }
 
-  // 5️⃣ GRÁFICO POR TIPO (CORREGIDO)
+  // 5️⃣ GRÁFICO POR TIPO (CON CANTIDADES EN SECCIONES)
   function renderizarGraficoTipo(datos) {
     // Convertir el objeto a arrays de claves y valores
     const tipos = Object.keys(datos);
@@ -349,14 +329,26 @@ tr:hover td {
             callbacks: {
               label: context => `${context.label}: ${context.parsed} animales`
             }
+          },
+          datalabels: {
+            display: true,
+            color: '#fff',
+            font: {
+              weight: 'bold'
+            },
+            formatter: (value, context) => {
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = Math.round((value / total) * 100);
+              return `${value} (${percentage}%)`;
+            }
           }
         }
       }
     });
   }
 
-  // 6️⃣ GRÁFICO DE EVOLUCIÓN (HISTÓRICO)
-  function renderizarGraficoHistorico(historico) {
+  // 6️⃣ GRÁFICO DE HISTÓRICO (LINEA)
+  function renderizarGraficoLinea(historico) {
     if (historico.length === 0) {
       document.getElementById("graficoHistorico").parentElement.innerHTML = 
         "<p style='text-align:center;color:#999'>No hay datos históricos</p>";
@@ -366,15 +358,15 @@ tr:hover td {
     // Tomar últimos 20 registros para no saturar
     const ultimos = historico.slice(-20);
     const fechas = ultimos.map(r => r.fecha || r.Fecha || 'Sin fecha');
-    const pesos = ultimos.map(r => parseFloat(r["peso total"] || r.peso_total || r["Peso Total"] || 0));
+    const cantidades = ultimos.map(r => parseInt(r.cantidad || r.Cantidad || 0));
     
     new Chart(document.getElementById("graficoHistorico"), {
       type: 'line',
       data: {
         labels: fechas,
         datasets: [{
-          label: 'Peso Total (kg)',
-          data: pesos,
+          label: 'Cantidad total',
+          data: cantidades,
           borderColor: '#2f6f4e',
           backgroundColor: 'rgba(47, 111, 78, 0.1)',
           borderWidth: 3,
@@ -391,14 +383,14 @@ tr:hover td {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: context => `Peso total: ${context.parsed.y} kg`
+              label: context => `Cantidad: ${context.parsed.y}`
             }
           }
         },
         scales: {
           y: {
-            beginAtZero: false,
-            title: { display: true, text: 'Peso (kg)' },
+            beginAtZero: true,
+            title: { display: true, text: 'Cantidad' },
             grid: { color: 'rgba(0,0,0,0.05)' }
           },
           x: {
@@ -408,44 +400,6 @@ tr:hover td {
         }
       }
     });
-  }
-
-  // 7️⃣ TABLA DETALLADA
-  function renderizarTabla(historico) {
-    if (historico.length === 0) {
-      document.getElementById("tabla-container").innerHTML = 
-        "<p style='text-align:center;color:#999;padding:20px'>No hay registros históricos</p>";
-      return;
-    }
-    
-    let html = `<table>
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Lote</th>
-          <th>Tipo</th>
-          <th>Cantidad</th>
-          <th>Peso Total (kg)</th>
-        </tr>
-      </thead>
-      <tbody>`;
-    
-    historico.slice(-30).reverse().forEach(row => {
-      html += `<tr>
-        <td>${row.fecha || row.Fecha || '-'}</td>
-        <td>${row.lote || row.Lote || '-'}</td>
-        <td>${row.tipo || row.Tipo || '-'}</td>
-        <td>${row.cantidad || row.Cantidad || '0'}</td>
-        <td>${row["peso total"] || row.peso_total || row["Peso Total"] || '0'}</td>
-      </tr>`;
-    });
-    
-    html += `</tbody></table>
-      <p style="text-align:right;font-size:13px;color:#888;margin-top:10px">
-        Mostrando últimos ${Math.min(30, historico.length)} registros de ${historico.length} totales
-      </p>`;
-    
-    document.getElementById("tabla-container").innerHTML = html;
   }
 
   // 8️⃣ FUNCIONES AUXILIARES
