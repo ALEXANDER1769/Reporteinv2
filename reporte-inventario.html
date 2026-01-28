@@ -216,6 +216,7 @@ tr:hover td {
     })
   })
   .then(response => {
+    console.log("Respuesta HTTP:", response.status, response.ok);
     if (!response.ok) throw new Error("Error del servidor: " + response.status);
     return response.json();
   })
@@ -254,8 +255,9 @@ tr:hover td {
     mostrarError("Error al cargar los datos: " + err.message);
   });
 
-  // 4️⃣ GRÁFICO POR LOTE
+  // 4️⃣ GRÁFICO POR LOTE (CORREGIDO)
   function renderizarGraficoLote(datos) {
+    // Convertir el objeto a arrays de claves y valores
     const lotes = Object.keys(datos);
     const cantidades = Object.values(datos);
     
@@ -307,8 +309,9 @@ tr:hover td {
     });
   }
 
-  // 5️⃣ GRÁFICO POR TIPO
+  // 5️⃣ GRÁFICO POR TIPO (CORREGIDO)
   function renderizarGraficoTipo(datos) {
+    // Convertir el objeto a arrays de claves y valores
     const tipos = Object.keys(datos);
     const cantidades = Object.values(datos);
     
