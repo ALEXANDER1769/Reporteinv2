@@ -228,11 +228,11 @@ tr:hover td {
       return;
     }
     
-    // 3️⃣ CORRECCIÓN CLAVE: usar las propiedades correctas de tu estructura
+    // 3️⃣ CORRECCIÓN CLAVE: usar las propiedades correctas (con mayúsculas)
     const total = data.total || 0;
-    const porLote = data.porlote || {};
-    const porTipo = data.portipo || {};
-    const historico = data.historico || [];
+    const porLote = data.porLote || {};  // ✅ porLote (L mayúscula)
+    const porTipo = data.porTipo || {};  // ✅ porTipo (T mayúscula)
+    const historico = data.historico || [];  // ✅ historico (todo minúsculas)
     
     if (total === 0 && historico.length === 0) {
       mostrarError("No se encontraron registros de inventario para este usuario");
