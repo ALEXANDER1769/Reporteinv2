@@ -3,148 +3,168 @@
 <head>
 <meta charset="UTF-8">
 <title>Reporte de Inventario</title>
-
 <style>
-body{
-  font-family: Arial, sans-serif;
-  background:#f4f6f9;
-  margin:0;
-  padding:20px;
+:root {
+--verde: #2f6f4e;
+--azul: #2c4f7c;
+--fondo: #f7f9f8;
 }
-
-h1{
-  color:#2f6f4e;
+body {
+font-family: system-ui, Arial;
+background: var(--fondo);
+margin: 0;
+padding: 20px;
 }
-
-#contenedor{
-  max-width:900px;
-  margin:auto;
-  background:#fff;
-  padding:20px;
-  border-radius:6px;
-  box-shadow:0 2px 8px rgba(0,0,0,.1);
+.container {
+max-width: 1100px;
+margin: auto;
+background: white;
+border-radius: 10px;
+padding: 25px;
+box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
-
-table{
-  width:100%;
-  border-collapse:collapse;
-  margin-top:15px;
+h1 {
+color: var(--azul);
+margin-bottom: 15px;
 }
-
-th,td{
-  padding:10px;
-  border:1px solid #ddd;
-  text-align:left;
+#loader {
+text-align: center;
+padding: 40px;
+font-size: 18px;
 }
-
-th{
-  background:#2f6f4e;
-  color:#fff;
+.vaca {
+font-size: 50px;
+animation: mover 1s infinite alternate;
 }
-
-.boton{
-  margin-top:20px;
-  padding:10px 16px;
-  background:#2f6f4e;
-  color:#fff;
-  border:none;
-  border-radius:4px;
-  cursor:pointer;
+@keyframes mover {
+from { transform: translateX(-5px) }
+to { transform: translateX(5px) }
 }
-
-.boton:hover{
-  background:#245a3f;
+table {
+width: 100%;
+border-collapse: collapse;
+margin-top: 20px;
+font-size: 14px;
+}
+th {
+background: var(--verde);
+color: white;
+padding: 10px;
+text-align: left;
+}
+td {
+padding: 8px;
+border-bottom: 1px solid #ddd;
+}
+.btn-volver {
+background: var(--azul);
+color: white;
+border: none;
+padding: 10px 16px;
+border-radius: 6px;
+cursor: pointer;
+margin-top: 20px;
+font-size: 14px;
+}
+.btn-volver:hover {
+opacity: 0.9;
+}
+.error {
+color: #c0392b;
+padding: 15px;
+background: #fadbd8;
+border-radius: 6px;
+margin: 20px 0;
 }
 </style>
 </head>
-
 <body>
-
-<div id="contenedor">
-  <h1>Reporte de Inventario</h1>
-  <p id="usuario"></p>
-
-  <div id="estado">Cargando datos…</div>
-
-  <table id="tabla" style="display:none">
-    <thead>
-      <tr>
-        <th>Lote</th>
-        <th>Categoría</th>
-        <th>Cantidad</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <button class="boton" onclick="volver()">⬅ Volver al panel</button>
+<div class="container">
+<h1>📊 Reporte de Inventario</h1>
+<div id="loader">
+<div class="vaca">🐄</div>
+<div>Cargando datos ganaderos...</div>
+</div>
+<div id="contenido" style="display:none">
+<div id="tabla-container"></div>
+<button class="btn-volver" onclick="volverPanel()">⬅ Volver al panel</button>
+</div>
+<div id="error" class="error" style="display:none"></div>
 </div>
 
 <script>
-(function(){
-
-  /* 1️⃣ Leer email desde la URL */
-  const p = new URLSearchParams(location.search);
-  const email = p.get("email");
-
-  if(!email){
-    document.body.innerHTML = "<h3>Acceso no autorizado</h3>";
-    return;
-  }
-
-  document.getElementById("usuario").textContent =
-    "Usuario: " + email;
-
-  /* 2️⃣ Llamada al backend (Worker / GAS) */
-  const endpoint =
-    "https://pysiga.d-alexjose.workers.dev/?reporte=inventario&email="
-    + encodeURIComponent(email);
-
-  fetch(endpoint)
-    .then(r => r.json())
-    .then(data => {
-
-      if(!data.ok){
-        document.getElementById("estado").textContent =
-          "No hay datos disponibles";
-        return;
-      }
-
-      const tbody =
-        document.querySelector("#tabla tbody");
-
-      data.registros.forEach(row => {
-        const tr = document.createElement("tr");
-
-        tr.innerHTML = `
-          <td>${row.lote}</td>
-          <td>${row.categoria}</td>
-          <td>${row.cantidad}</td>
-        `;
-
-        tbody.appendChild(tr);
-      });
-
-      document.getElementById("estado").style.display="none";
-      document.getElementById("tabla").style.display="table";
-    })
-    .catch(err=>{
-      document.getElementById("estado").textContent =
-        "Error al cargar el reporte";
-      console.error(err);
-    });
-
-})();
-
-/* 3️⃣ Botón volver */
-function volver(){
-  location.href =
-    "https://reporteinv2.pages.dev/redirect-panel.html?email="
-    + encodeURIComponent(
-        new URLSearchParams(location.search).get("email")
-      );
+(function() {
+// 1. Leer email desde URL
+const params = new URLSearchParams(window.location.search);
+const email = params.get("email");
+if (!email) {
+mostrarError("Acceso no autorizado. Inicie sesión desde el panel principal.");
+return;
 }
-</script>
 
+// 2. Cargar datos con POST (CORREGIDO)
+fetch("https://pysiga.d-alexjose.workers.dev", {
+method: "POST",
+headers: {
+"Content-Type": "application/json"
+},
+body: JSON.stringify({
+accion: "reporteInventario",
+email: email
+})
+})
+.then(response => {
+if (!response.ok) throw new Error("Error en el servidor");
+return response.json();
+})
+.then(data => {
+if (!data.ok || !data.datos || data.datos.length === 0) {
+mostrarError("No hay datos de inventario disponibles para este usuario");
+return;
+}
+renderizarTabla(data.datos);
+})
+.catch(err => {
+console.error("Error:", err);
+mostrarError("No se pudieron cargar los datos. Verifique su conexión.");
+});
+
+// 3. Funciones auxiliares
+function renderizarTabla(datos) {
+document.getElementById("loader").style.display = "none";
+document.getElementById("contenido").style.display = "block";
+let html = `<table>
+<thead>
+<tr>
+<th>Lote</th>
+<th>Tipo</th>
+<th>Cantidad</th>
+<th>Peso Total (kg)</th>
+</tr>
+</thead>
+<tbody>`;
+datos.forEach(row => {
+html += `<tr>
+<td>${row.Lote || row.lote || '-'}</td>
+<td>${row.Tipo || row.tipo || '-'}</td>
+<td>${row.Cantidad || row.cantidad || '0'}</td>
+<td>${row["Peso Total"] || row.peso_total || '0'}</td>
+</tr>`;
+});
+html += `</tbody></table>`;
+document.getElementById("tabla-container").innerHTML = html;
+}
+
+function mostrarError(mensaje) {
+document.getElementById("loader").style.display = "none";
+document.getElementById("error").textContent = mensaje;
+document.getElementById("error").style.display = "block";
+}
+
+function volverPanel() {
+window.location.href = "https://www.pysiga.com";
+}
+})();
+</script>
 </body>
 </html>
