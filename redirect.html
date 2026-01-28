@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Redireccionando…</title>
+</head>
+
+<body>
+<p>Redireccionando al reporte…</p>
+
+<script>
+(function(){
+  const p=new URLSearchParams(location.search);
+  const email=p.get("email");
+  const tipo=p.get("tipo");
+
+  if(!email||!tipo){
+    document.body.innerHTML="<h3>Error de acceso</h3>";
+    return;
+  }
+
+  let destino="";
+  if(tipo==="inventario"){
+    destino="https://reporteinv2.pages.dev/reporte-inventario.html";
+  }else{
+    document.body.innerHTML="<h3>Reporte no válido</h3>";
+    return;
+  }
+
+  location.replace(destino+"?email="+encodeURIComponent(email));
+})();
+</script>
+
+</body>
+</html>
