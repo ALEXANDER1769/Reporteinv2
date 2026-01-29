@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Volviendo al panel...</title>
+<style>
+body {
+  font-family: system-ui, Arial;
+  background: #f7f9f8;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  color: #2c4f7c;
+}
+.card {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  text-align: center;
+}
+.vaca {
+  font-size: 40px;
+  animation: mover 1s infinite alternate;
+  margin-bottom: 15px;
+}
+@keyframes mover {
+  from { transform: translateX(-5px); }
+  to { transform: translateX(5px); }
+}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="vaca">🐄</div>
+  <p>Volviendo al panel PYSIGA...</p>
+</div>
+
+<script>
+(function() {
+  // Leer email de la URL
+  const params = new URLSearchParams(window.location.search);
+  const email = params.get("email");
+  
+  if (!email) {
+    document.body.innerHTML = "<div class='card'><h3>Error: Sesión no válida</h3></div>";
+    return;
+  }
+  
+  // Redirigir al panel principal con el email
+  window.location.href = "https://www.pysiga.com?email=" + encodeURIComponent(email);
+})();
+</script>
+</body>
+</html>
