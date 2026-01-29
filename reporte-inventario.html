@@ -267,11 +267,11 @@ tr:hover td {
     
     new Chart(document.getElementById("graficoLote"), {
       type: 'bar',
-       {
+      data: {
         labels: lotes,
         datasets: [{
           label: 'Cantidad de animales',
-           cantidades,
+          data: cantidades,
           backgroundColor: lotes.map((_, i) => 
             `hsl(${i * 40}, 60%, 55%)`
           ),
@@ -320,7 +320,7 @@ tr:hover td {
     
     new Chart(document.getElementById("graficoTipo"), {
       type: 'doughnut',
-       {
+      data: {
         labels: tipos,
         datasets: [{
           data: cantidades,
@@ -371,7 +371,7 @@ tr:hover td {
         labels: fechas,
         datasets: [{
           label: 'Peso Total (kg)',
-           pesos,
+          data: pesos,
           borderColor: '#2f6f4e',
           backgroundColor: 'rgba(47, 111, 78, 0.1)',
           borderWidth: 3,
@@ -459,8 +459,4 @@ tr:hover td {
 })();
 </script>
 </body>
-</html> 
-
-
-
-
+</html>
