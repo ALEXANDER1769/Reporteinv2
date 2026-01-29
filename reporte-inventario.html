@@ -3,101 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <title>Reporte de Inventario - PYSIGA</title>
-
-<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-:root {
-  --verde:#2f6f4e;
-  --azul:#2c4f7c;
-  --fondo:#f7f9f8;
-}
-body{
-  font-family:system-ui,Arial,sans-serif;
-  background:var(--fondo);
-  margin:0;
-  padding:20px;
-}
-.container{
-  max-width:1200px;
-  margin:auto;
-  background:#fff;
-  border-radius:12px;
-  padding:25px;
-  box-shadow:0 3px 12px rgba(0,0,0,.1);
-}
-h1{
-  text-align:center;
-  color:var(--azul);
-}
-.numero-total{
-  font-size:64px;
-  font-weight:bold;
-  color:var(--verde);
-  text-align:center;
-  margin:20px 0;
-}
-.subtitulo{
-  text-align:center;
-  color:#666;
-  margin-bottom:30px;
-}
-.section{
-  margin-bottom:40px;
-}
-.section h2{
-  color:var(--azul);
-  border-left:4px solid var(--verde);
-  padding-left:12px;
-}
-.grafico-container{
-  background:#fff;
-  border-radius:10px;
-  padding:20px;
-  box-shadow:0 2px 8px rgba(0,0,0,.08);
-}
-canvas{
-  width:100%;
-  height:320px !important;
-}
-#loader{
-  text-align:center;
-  padding:60px 20px;
-  font-size:20px;
-  color:var(--azul);
-}
-.vaca{
-  font-size:60px;
-  animation:mover 1.2s infinite alternate;
-}
-@keyframes mover{
-  from{transform:translateX(-8px)}
-  to{transform:translateX(8px)}
-}
-.error{
-  display:none;
-  background:#fadbd8;
-  color:#c0392b;
-  padding:20px;
-  border-radius:10px;
-  margin-top:30px;
-  text-align:center;
-}
-.btn-volver{
-  background:var(--azul);
-  color:#fff;
-  border:none;
-  padding:12px 26px;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:bold;
-  display:block;
-  margin:30px auto 0;
-}
-.btn-volver:hover{
-  background:#1e3a5f;
-}
+:root{--verde:#2f6f4e;--azul:#2c4f7c;--fondo:#f7f9f8}
+body{font-family:system-ui,Arial;background:var(--fondo);margin:0;padding:20px}
+.container{max-width:1200px;margin:auto;background:#fff;border-radius:12px;padding:25px;box-shadow:0 3px 12px rgba(0,0,0,.1)}
+h1{text-align:center;color:var(--azul)}
+.numero-total{font-size:64px;font-weight:bold;color:var(--verde);text-align:center}
+.subtitulo{text-align:center;color:#666;margin-bottom:30px}
+.section{margin-bottom:40px}
+.section h2{color:var(--azul);border-left:4px solid var(--verde);padding-left:12px}
+.grafico-container{background:#fff;border-radius:10px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+canvas{width:100%;height:320px!important}
+#loader{text-align:center;padding:60px;font-size:20px;color:var(--azul)}
+.error{display:none;background:#fadbd8;color:#c0392b;padding:20px;border-radius:10px;text-align:center}
+.btn-volver{background:var(--azul);color:#fff;border:none;padding:12px 26px;border-radius:8px;cursor:pointer;font-weight:bold;display:block;margin:30px auto 0}
+.btn-volver:hover{background:#1e3a5f}
 </style>
 </head>
 
@@ -106,10 +28,7 @@ canvas{
 
 <h1>📊 Reporte de Inventario Ganadero</h1>
 
-<div id="loader">
-  <div class="vaca">🐄</div>
-  Cargando datos ganaderos…
-</div>
+<div id="loader">Cargando datos…</div>
 
 <div id="contenido" style="display:none">
 
@@ -120,23 +39,17 @@ canvas{
 
   <div class="section">
     <h2>Inventario por Lote</h2>
-    <div class="grafico-container">
-      <canvas id="graficoLote"></canvas>
-    </div>
+    <div class="grafico-container"><canvas id="graficoLote"></canvas></div>
   </div>
 
   <div class="section">
     <h2>Inventario por Tipo</h2>
-    <div class="grafico-container">
-      <canvas id="graficoTipo"></canvas>
-    </div>
+    <div class="grafico-container"><canvas id="graficoTipo"></canvas></div>
   </div>
 
   <div class="section">
     <h2>Historial de Inventario</h2>
-    <div class="grafico-container">
-      <canvas id="graficoHistorico"></canvas>
-    </div>
+    <div class="grafico-container"><canvas id="graficoHistorico"></canvas></div>
   </div>
 
   <button class="btn-volver" onclick="volverPanel()">⬅ Volver al panel</button>
@@ -149,132 +62,42 @@ canvas{
 <script>
 (function(){
 
-/* ===============================
-   LEER EMAIL
-=============================== */
-const params = new URLSearchParams(window.location.search);
-const email = params.get("email");
+const params=new URLSearchParams(location.search);
+const email=params.get("email");
 
 if(!email){
-  mostrarError("Acceso no autorizado. Inicie sesión desde el panel.");
+  mostrarError("Acceso no autorizado");
   return;
 }
 
-/* ===============================
-   FETCH BACKEND
-=============================== */
 fetch("https://pysiga.d-alexjose.workers.dev",{
   method:"POST",
   headers:{ "Content-Type":"application/json" },
-  body:JSON.stringify({
-    accion:"reporteInventario",
-    email:email
-  })
+  body:JSON.stringify({accion:"reporteInventario",email})
 })
-.then(r=>{
-  if(!r.ok) throw new Error("HTTP "+r.status);
-  return r.json();
+.then(r=>r.json())
+.then(d=>{
+  if(!d.ok){mostrarError(d.error||"Error");return}
+  document.getElementById("total-general").textContent=d.total||0;
+  new Chart(graficoLote,{type:"bar",data:{labels:Object.keys(d.porLote||{}),datasets:[{data:Object.values(d.porLote||{}),backgroundColor:"#2f6f4e"}]}});
+  new Chart(graficoTipo,{type:"doughnut",data:{labels:Object.keys(d.porTipo||{}),datasets:[{data:Object.values(d.porTipo||{}),backgroundColor:["#2f6f4e","#2c4f7c","#8b6f47"]}]}});
+  new Chart(graficoHistorico,{type:"line",data:{labels:(d.historico||[]).map(x=>x.fecha),datasets:[{data:(d.historico||[]).map(x=>x.total),borderColor:"#2f6f4e",fill:true}]}});
+  loader.style.display="none";contenido.style.display="block";
 })
-.then(data=>{
-  if(!data.ok){
-    mostrarError(data.error || "Respuesta inválida del servidor");
-    return;
-  }
+.catch(e=>mostrarError(e.message));
 
-  document.getElementById("total-general").textContent = data.total || 0;
-
-  renderizarGraficoLote(data.porLote || {});
-  renderizarGraficoTipo(data.porTipo || {});
-  renderizarGraficoHistorico(data.historico || []);
-
-  document.getElementById("loader").style.display="none";
-  document.getElementById("contenido").style.display="block";
-})
-.catch(err=>{
-  mostrarError("Error al cargar datos: "+err.message);
-});
-
-/* ===============================
-   GRAFICOS
-=============================== */
-function renderizarGraficoLote(datos){
-  new Chart(document.getElementById("graficoLote"),{
-    type:"bar",
-    data:{
-      labels:Object.keys(datos),
-      datasets:[{
-        data:Object.values(datos),
-        backgroundColor:"#2f6f4e"
-      }]
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      plugins:{ legend:{ display:false } },
-      scales:{ y:{ beginAtZero:true } }
-    }
-  });
+function mostrarError(m){
+  loader.style.display="none";
+  error.textContent=m;
+  error.style.display="block";
 }
 
-function renderizarGraficoTipo(datos){
-  new Chart(document.getElementById("graficoTipo"),{
-    type:"doughnut",
-    data:{
-      labels:Object.keys(datos),
-      datasets:[{
-        data:Object.values(datos),
-        backgroundColor:["#2f6f4e","#2c4f7c","#8b6f47","#7f8c8d"]
-      }]
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false
-    }
-  });
-}
-
-function renderizarGraficoHistorico(hist){
-  const fechas = hist.map(r=>r.fecha || "—");
-  const valores = hist.map(r=>Number(r.total || 0));
-
-  new Chart(document.getElementById("graficoHistorico"),{
-    type:"line",
-    data:{
-      labels:fechas,
-      datasets:[{
-        data:valores,
-        borderColor:"#2f6f4e",
-        backgroundColor:"rgba(47,111,78,.15)",
-        fill:true,
-        tension:.3
-      }]
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      plugins:{ legend:{ display:false } }
-    }
-  });
-}
-
-/* ===============================
-   UTILIDADES
-=============================== */
-function mostrarError(msg){
-  document.getElementById("loader").style.display="none";
-  const e=document.getElementById("error");
-  e.textContent=msg;
-  e.style.display="block";
-}
-
-/* ===============================
-   RETORNO CORRECTO AL PANEL
-=============================== */
-window.volverPanel = function(){
-  if (window.history.length > 1) {
-    window.history.back();   // 👈 vuelve al panel real
-  } else {
-    window.location.href = "https://www.pysiga.com"; // respaldo
+/* 🔥 RETORNO DEFINITIVO */
+window.volverPanel=function(){
+  if(document.referrer){
+    location.href=document.referrer;
+  }else{
+    location.href="https://www.pysiga.com/panel?email="+encodeURIComponent(email);
   }
 };
 
