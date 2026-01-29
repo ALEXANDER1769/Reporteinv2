@@ -204,7 +204,7 @@ tr:hover td {
     return;
   }
 
-  // 2️⃣ FETCH CORREGIDO: POST con estructura que espera tu Apps Script
+  // 2️⃣ FETCH CORRECTO: POST con estructura que espera tu Apps Script
   fetch("https://pysiga.d-alexjose.workers.dev", {
     method: "POST",
     headers: {
@@ -229,8 +229,8 @@ tr:hover td {
     
     // 3️⃣ CORRECCIÓN CLAVE: usar las propiedades correctas (con mayúsculas como tu backend las envía)
     const total = data.total || 0;
-    const porLote = data.porLote || {};  // ✅ Mayúscula: porLote
-    const porTipo = data.porTipo || {};  // ✅ Mayúscula: porTipo
+    const porLote = data.porLote || {};
+    const porTipo = data.porTipo || {};
     const historico = data.historico || [];
     
     if (total === 0 && historico.length === 0) {
@@ -259,10 +259,6 @@ tr:hover td {
     const lotes = Object.keys(datos);
     const cantidades = Object.values(datos);
     
-    console.log("📊 Gráfico por Lote - Datos:", datos);
-    console.log("📊 Lotes:", lotes);
-    console.log("📊 Cantidades:", cantidades);
-    
     if (lotes.length === 0) {
       document.getElementById("graficoLote").parentElement.innerHTML = 
         "<p style='text-align:center;color:#999'>No hay datos por lote</p>";
@@ -271,11 +267,11 @@ tr:hover td {
     
     new Chart(document.getElementById("graficoLote"), {
       type: 'bar',
-       {
+      data: {
         labels: lotes,
         datasets: [{
           label: 'Cantidad de animales',
-           cantidades,
+          data: cantidades,
           backgroundColor: lotes.map((_, i) => 
             `hsl(${i * 40}, 60%, 55%)`
           ),
@@ -316,10 +312,6 @@ tr:hover td {
     const tipos = Object.keys(datos);
     const cantidades = Object.values(datos);
     
-    console.log("🍩 Gráfico por Tipo - Datos:", datos);
-    console.log("🍩 Tipos:", tipos);
-    console.log("🍩 Cantidades:", cantidades);
-    
     if (tipos.length === 0) {
       document.getElementById("graficoTipo").parentElement.innerHTML = 
         "<p style='text-align:center;color:#999'>No hay datos por tipo</p>";
@@ -331,7 +323,7 @@ tr:hover td {
       data: {
         labels: tipos,
         datasets: [{
-           cantidades,
+          data: cantidades,
           backgroundColor: tipos.map((_, i) => 
             `hsl(${i * 60 + 200}, 70%, 60%)`
           ),
@@ -375,11 +367,11 @@ tr:hover td {
     
     new Chart(document.getElementById("graficoHistorico"), {
       type: 'line',
-       {
+      data: {
         labels: fechas,
         datasets: [{
           label: 'Peso Total (kg)',
-           pesos,
+          data: pesos,
           borderColor: '#2f6f4e',
           backgroundColor: 'rgba(47, 111, 78, 0.1)',
           borderWidth: 3,
