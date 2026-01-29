@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <title>Reporte de Inventario - PYSIGA</title>
+<!-- Chart.js - SIN ESPACIOS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root {
   --verde: #2f6f4e;
@@ -179,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   console.log("📧 Email:", email);
 
-  // Fetch con POST (CORREGIDO)
+  // Fetch con POST (CORREGIDO - SIN ESPACIOS EN URL)
   fetch("https://pysiga.d-alexjose.workers.dev", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
