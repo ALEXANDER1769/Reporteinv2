@@ -79,28 +79,6 @@ canvas {
   from { transform: translateX(-8px) rotate(-5deg); }
   to { transform: translateX(8px) rotate(5deg); }
 }
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-  font-size: 14px;
-  overflow-x: auto;
-}
-th {
-  background: var(--verde);
-  color: white;
-  padding: 10px;
-  text-align: left;
-  position: sticky;
-  top: 0;
-}
-td {
-  padding: 9px;
-  border-bottom: 1px solid #eee;
-}
-tr:hover td {
-  background: #f9f9f9;
-}
 .btn-volver {
   background: var(--azul);
   color: white;
@@ -173,18 +151,12 @@ tr:hover td {
       </div>
     </div>
     
-    <!-- GRÁFICO DE EVOLUCIÓN (HISTÓRICO) -->
+    <!-- GRÁFICO DE HISTÓRICO -->
     <div class="section">
-      <h2>Evolución de Pesos</h2>
+      <h2>Historial de Inventario</h2>
       <div class="grafico-container">
         <canvas id="graficoHistorico"></canvas>
       </div>
-    </div>
-    
-    <!-- TABLA DETALLADA -->
-    <div class="section">
-      <h2>Detalle del Histórico</h2>
-      <div id="tabla-container"></div>
     </div>
     
     <button class="btn-volver" onclick="volverPanel()">⬅ Volver al panel principal</button>
@@ -243,7 +215,6 @@ tr:hover td {
     renderizarGraficoLote(porLote);
     renderizarGraficoTipo(porTipo);
     renderizarGraficoHistorico(historico);
-    renderizarTabla(historico);
     
     // Mostrar contenido
     document.getElementById("loader").style.display = "none";
@@ -271,7 +242,7 @@ tr:hover td {
         labels: lotes,
         datasets: [{
           label: 'Cantidad de animales',
-          data: cantidades,
+           cantidades,
           backgroundColor: lotes.map((_, i) => 
             `hsl(${i * 40}, 60%, 55%)`
           ),
@@ -320,10 +291,10 @@ tr:hover td {
     
     new Chart(document.getElementById("graficoTipo"), {
       type: 'doughnut',
-      data: {
+       {
         labels: tipos,
         datasets: [{
-          data: cantidades,
+           cantidades,
           backgroundColor: tipos.map((_, i) => 
             `hsl(${i * 60 + 200}, 70%, 60%)`
           ),
@@ -352,7 +323,7 @@ tr:hover td {
     });
   }
 
-  // 6️⃣ GRÁFICO DE EVOLUCIÓN (HISTÓRICO)
+  // 6️⃣ GRÁFICO DE HISTÓRICO (CORREGIDO)
   function renderizarGraficoHistorico(historico) {
     if (historico.length === 0) {
       document.getElementById("graficoHistorico").parentElement.innerHTML = 
@@ -363,15 +334,15 @@ tr:hover td {
     // Tomar últimos 20 registros para no saturar
     const ultimos = historico.slice(-20);
     const fechas = ultimos.map(r => r.fecha || r.Fecha || 'Sin fecha');
-    const pesos = ultimos.map(r => parseFloat(r["peso total"] || r.peso_total || r["Peso Total"] || 0));
+    const cantidades = ultimos.map(r => parseInt(r.total || r.cantidad || r.Cantidad || 0));
     
     new Chart(document.getElementById("graficoHistorico"), {
       type: 'line',
-      data: {
+       {
         labels: fechas,
         datasets: [{
-          label: 'Peso Total (kg)',
-          data: pesos,
+          label: 'Total de animales',
+           cantidades,
           borderColor: '#2f6f4e',
           backgroundColor: 'rgba(47, 111, 78, 0.1)',
           borderWidth: 3,
@@ -388,14 +359,14 @@ tr:hover td {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: context => `Peso total: ${context.parsed.y} kg`
+              label: context => `Total: ${context.parsed.y} animales`
             }
           }
         },
         scales: {
           y: {
-            beginAtZero: false,
-            title: { display: true, text: 'Peso (kg)' },
+            beginAtZero: true,
+            title: { display: true, text: 'Cantidad' },
             grid: { color: 'rgba(0,0,0,0.05)' }
           },
           x: {
@@ -407,45 +378,7 @@ tr:hover td {
     });
   }
 
-  // 7️⃣ TABLA DETALLADA
-  function renderizarTabla(historico) {
-    if (historico.length === 0) {
-      document.getElementById("tabla-container").innerHTML = 
-        "<p style='text-align:center;color:#999;padding:20px'>No hay registros históricos</p>";
-      return;
-    }
-    
-    let html = `<table>
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Lote</th>
-          <th>Tipo</th>
-          <th>Cantidad</th>
-          <th>Peso Total (kg)</th>
-        </tr>
-      </thead>
-      <tbody>`;
-    
-    historico.slice(-30).reverse().forEach(row => {
-      html += `<tr>
-        <td>${row.fecha || row.Fecha || '-'}</td>
-        <td>${row.lote || row.Lote || '-'}</td>
-        <td>${row.tipo || row.Tipo || '-'}</td>
-        <td>${row.cantidad || row.Cantidad || '0'}</td>
-        <td>${row["peso total"] || row.peso_total || row["Peso Total"] || '0'}</td>
-      </tr>`;
-    });
-    
-    html += `</tbody></table>
-      <p style="text-align:right;font-size:13px;color:#888;margin-top:10px">
-        Mostrando últimos ${Math.min(30, historico.length)} registros de ${historico.length} totales
-      </p>`;
-    
-    document.getElementById("tabla-container").innerHTML = html;
-  }
-
-  // 8️⃣ FUNCIONES AUXILIARES
+  // 7️⃣ FUNCIONES AUXILIARES
   function mostrarError(mensaje) {
     document.getElementById("loader").style.display = "none";
     const err = document.getElementById("error");
@@ -454,6 +387,7 @@ tr:hover td {
   }
 
   function volverPanel() {
+    // Redirige al panel principal
     window.location.href = "https://www.pysiga.com";
   }
 })();
