@@ -163,7 +163,6 @@ canvas {
   // 1️⃣ Leer email desde URL
   const params = new URLSearchParams(window.location.search);
   const email = params.get("email");
-  const returnUrl = params.get("return"); // ✅ PARÁMETRO RETURN
   
   if (!email) {
     mostrarError("Acceso no autorizado. Inicie sesión desde el panel principal.");
@@ -218,13 +217,8 @@ canvas {
     document.getElementById("btnVolver").addEventListener("click", function() {
       console.log("Botón volver clickeado");
       
-      if (returnUrl) {
-        // 🔥 REDIRECCIÓN AL PANEL ESPECIFICADO
-        window.location.href = decodeURIComponent(returnUrl);
-      } else {
-        // 🔄 REDIRECCIÓN POR DEFECTO
-        window.location.href = "https://www.pysiga.com";
-      }
+      // Redirigir al panel principal
+      window.location.href = "https://www.pysiga.com";
     });
   })
   .catch(err => {
@@ -396,3 +390,4 @@ canvas {
 </script>
 </body>
 </html>
+
