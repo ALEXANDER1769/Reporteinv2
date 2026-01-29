@@ -257,11 +257,11 @@ function renderizarGraficoLote() {
   
   new Chart(document.getElementById("graficoLote"), {
     type: 'bar',
-     {  // ✅ CORREGIDO: "" completo
+     {
       labels: lotes,
       datasets: [{
         label: 'Cantidad',
-         cantidades,  // ✅ CORREGIDO: "" completo
+        data: cantidades,
         backgroundColor: lotes.map((_, i) => `hsl(${i * 40}, 60%, 55%)`),
         borderColor: lotes.map((_, i) => `hsl(${i * 40}, 60%, 40%)`),
         borderWidth: 1
@@ -302,10 +302,10 @@ function renderizarGraficoTipo() {
   
   new Chart(document.getElementById("graficoTipo"), {
     type: 'doughnut',
-     {  // ✅ CORREGIDO: "" completo
+     {
       labels: tipos,
       datasets: [{
-         cantidades,  // ✅ CORREGIDO: "" completo
+        data: cantidades,
         backgroundColor: tipos.map((_, i) => `hsl(${i * 60 + 200}, 70%, 60%)`),
         borderWidth: 2,
         borderColor: '#fff'
@@ -363,11 +363,11 @@ function renderizarGraficoHistorico() {
   
   new Chart(document.getElementById("graficoHistorico"), {
     type: 'line',
-     {  // ✅ CORREGIDO: "" completo
+     {
       labels: fechas,
       datasets: [{
         label: 'Cantidad total',
-         cantidades,  // ✅ CORREGIDO: "" completo
+        data: cantidades,
         borderColor: '#2f6f4e',
         backgroundColor: 'rgba(47, 111, 78, 0.1)',
         borderWidth: 3,
