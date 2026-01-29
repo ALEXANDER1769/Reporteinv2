@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>Reporte de Inventario - PYSIGA</title>
-<!-- Chart.js + DataLabels -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 <style>
@@ -161,20 +160,20 @@ canvas {
 </div>
 
 <script>
-// REGISTRAR PLUGIN DATALABELS
+// Registrar plugin DataLabels
 Chart.register(ChartDataLabels);
 
-// VARIABLES GLOBALES
+// Variables para los datos
 let totalGeneral = 0;
 let datosPorLote = {};
 let datosPorTipo = {};
 let datosHistorico = [];
 
-// FUNCIÓN PRINCIPAL
-function init() {
+// Inicializar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
   console.log("🚀 Iniciando reporte de inventario...");
   
-  // Leer email desde URL
+  // Obtener email de la URL
   const params = new URLSearchParams(window.location.search);
   const email = params.get("email");
   
@@ -185,29 +184,19 @@ function init() {
   
   console.log("📧 Email:", email);
   
-  // FETCH CON TIMEOUT
+  // Fetch con timeout de 10 segundos
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
   
   fetch("https://pysiga.d-alexjose.workers.dev", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      accion: "reporteInventario",
-      email: email
-    }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ accion: "reporteInventario", email: email }),
     signal: controller.signal
   })
   .then(response => {
     clearTimeout(timeoutId);
-    console.log("✅ Respuesta HTTP:", response.status);
-    
-    if (!response.ok) {
-      throw new Error("Error del servidor: " + response.status);
-    }
-    
+    if (!response.ok) throw new Error("Error del servidor: " + response.status);
     return response.json();
   })
   .then(data => {
@@ -229,22 +218,22 @@ function init() {
     console.log("📊 Histórico:", datosHistorico.length, "registros");
     
     if (totalGeneral === 0 && datosHistorico.length === 0) {
-      throw new Error("No se encontraron registros de inventario para este usuario");
+      throw new Error("No se encontraron registros de inventario");
     }
     
-    // Renderizar todo
+    // Renderizar gráficos
     document.getElementById("total-general").textContent = totalGeneral;
     renderizarGraficoLote();
     renderizarGraficoTipo();
     renderizarGraficoHistorico();
     
-    // Mostrar contenido
+    // Mostrar contenido y ocultar loader
     document.getElementById("loader").style.display = "none";
     document.getElementById("contenido").style.display = "block";
     
-    // Botón volver - CORREGIDO: cerrar pestaña actual
+    // Configurar botón de volver (CIERRA esta pestaña)
     document.getElementById("btnVolver").addEventListener("click", function() {
-      console.log("🔴 Botón cerrar clickeado - Cerrando pestaña del reporte");
+      console.log("✅ Cerrando pestaña del reporte...");
       window.close();
     });
   })
@@ -253,15 +242,12 @@ function init() {
     console.error("❌ Error:", err);
     mostrarError("Error al cargar los datos: " + err.message);
   });
-}
+});
 
-// GRÁFICO POR LOTE
+// Gráfico por Lote
 function renderizarGraficoLote() {
   const lotes = Object.keys(datosPorLote);
   const cantidades = Object.values(datosPorLote);
-  
-  console.log("📊 Lotes:", lotes);
-  console.log("📊 Cantidades:", cantidades);
   
   if (lotes.length === 0) {
     document.getElementById("graficoLote").parentElement.innerHTML = 
@@ -271,11 +257,11 @@ function renderizarGraficoLote() {
   
   new Chart(document.getElementById("graficoLote"), {
     type: 'bar',
-     {
+     {  // ✅ CORREGIDO: "" completo
       labels: lotes,
       datasets: [{
         label: 'Cantidad',
-         cantidades,
+         cantidades,  // ✅ CORREGIDO: "" completo
         backgroundColor: lotes.map((_, i) => `hsl(${i * 40}, 60%, 55%)`),
         borderColor: lotes.map((_, i) => `hsl(${i * 40}, 60%, 40%)`),
         borderWidth: 1
@@ -303,13 +289,10 @@ function renderizarGraficoLote() {
   });
 }
 
-// GRÁFICO POR TIPO
+// Gráfico por Tipo
 function renderizarGraficoTipo() {
   const tipos = Object.keys(datosPorTipo);
   const cantidades = Object.values(datosPorTipo);
-  
-  console.log("🍩 Tipos:", tipos);
-  console.log("🍩 Cantidades:", cantidades);
   
   if (tipos.length === 0) {
     document.getElementById("graficoTipo").parentElement.innerHTML = 
@@ -319,10 +302,10 @@ function renderizarGraficoTipo() {
   
   new Chart(document.getElementById("graficoTipo"), {
     type: 'doughnut',
-    data: {
+     {  // ✅ CORREGIDO: "" completo
       labels: tipos,
       datasets: [{
-         cantidades,
+         cantidades,  // ✅ CORREGIDO: "" completo
         backgroundColor: tipos.map((_, i) => `hsl(${i * 60 + 200}, 70%, 60%)`),
         borderWidth: 2,
         borderColor: '#fff'
@@ -350,10 +333,8 @@ function renderizarGraficoTipo() {
   });
 }
 
-// GRÁFICO DE HISTÓRICO
+// Gráfico de Histórico
 function renderizarGraficoHistorico() {
-  console.log("📈 Histórico completo:", datosHistorico);
-  
   if (datosHistorico.length === 0) {
     document.getElementById("graficoHistorico").parentElement.innerHTML = 
       "<p style='text-align:center;color:#999'>No hay datos históricos</p>";
@@ -362,30 +343,19 @@ function renderizarGraficoHistorico() {
   
   // Tomar últimos 20 registros
   const ultimos = datosHistorico.slice(-20);
-  
   const fechas = [];
   const cantidades = [];
   
-  ultimos.forEach((registro, index) => {
-    // Extraer fecha
+  ultimos.forEach(registro => {
     const fecha = registro.fecha || registro.Fecha || registro["Fecha/Hora"] || 'Sin fecha';
-    fechas.push(fecha);
-    
-    // Extraer cantidad
     const cantidad = registro.cantidad || registro.Cantidad || registro["TOTAL GENERAL"] || registro.total || 0;
-    cantidades.push(parseInt(cantidad));
-    
-    console.log(`Registro ${index}: Fecha="${fecha}", Cantidad=${cantidad}`);
+    fechas.push(fecha);
+    cantidades.push(parseInt(cantidad) || 0);
   });
-  
-  console.log("📈 Fechas:", fechas);
-  console.log("📈 Cantidades:", cantidades);
   
   // Verificar datos válidos
   const hayDatosValidos = cantidades.some(c => !isNaN(c) && c > 0);
-  
   if (!hayDatosValidos) {
-    console.warn("⚠️ No hay datos numéricos válidos");
     document.getElementById("graficoHistorico").parentElement.innerHTML = 
       "<p style='text-align:center;color:#999'>No hay datos numéricos válidos</p>";
     return;
@@ -393,11 +363,11 @@ function renderizarGraficoHistorico() {
   
   new Chart(document.getElementById("graficoHistorico"), {
     type: 'line',
-     {
+     {  // ✅ CORREGIDO: "" completo
       labels: fechas,
       datasets: [{
         label: 'Cantidad total',
-         cantidades,
+         cantidades,  // ✅ CORREGIDO: "" completo
         borderColor: '#2f6f4e',
         backgroundColor: 'rgba(47, 111, 78, 0.1)',
         borderWidth: 3,
@@ -425,16 +395,13 @@ function renderizarGraficoHistorico() {
   });
 }
 
-// MOSTRAR ERROR
+// Mostrar error
 function mostrarError(mensaje) {
   document.getElementById("loader").style.display = "none";
   const err = document.getElementById("error");
   err.textContent = mensaje;
   err.style.display = "block";
 }
-
-// INICIAR CUANDO EL DOM ESTÉ LISTO
-document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
