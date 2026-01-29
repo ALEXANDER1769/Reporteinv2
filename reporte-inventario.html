@@ -3,391 +3,283 @@
 <head>
 <meta charset="UTF-8">
 <title>Reporte de Inventario - PYSIGA</title>
+
+<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
 :root {
-  --verde: #2f6f4e;
-  --azul: #2c4f7c;
-  --fondo: #f7f9f8;
+  --verde:#2f6f4e;
+  --azul:#2c4f7c;
+  --fondo:#f7f9f8;
 }
-body {
-  font-family: system-ui, Arial;
-  background: var(--fondo);
-  margin: 0;
-  padding: 20px;
+body{
+  font-family:system-ui,Arial,sans-serif;
+  background:var(--fondo);
+  margin:0;
+  padding:20px;
 }
-.container {
-  max-width: 1200px;
-  margin: auto;
-  background: white;
-  border-radius: 12px;
-  padding: 25px;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+.container{
+  max-width:1200px;
+  margin:auto;
+  background:#fff;
+  border-radius:12px;
+  padding:25px;
+  box-shadow:0 3px 12px rgba(0,0,0,.1);
 }
-h1 {
-  color: var(--azul);
-  margin-bottom: 15px;
-  text-align: center;
+h1{
+  text-align:center;
+  color:var(--azul);
 }
-.numero-total {
-  font-size: 64px;
-  font-weight: bold;
-  color: var(--verde);
-  text-align: center;
-  margin: 20px 0;
+.numero-total{
+  font-size:64px;
+  font-weight:bold;
+  color:var(--verde);
+  text-align:center;
+  margin:20px 0;
 }
-.subtitulo {
-  text-align: center;
-  color: #666;
-  margin-bottom: 30px;
-  font-size: 18px;
+.subtitulo{
+  text-align:center;
+  color:#666;
+  margin-bottom:30px;
 }
-.section {
-  margin-bottom: 40px;
+.section{
+  margin-bottom:40px;
 }
-.section h2 {
-  color: var(--azul);
-  border-left: 4px solid var(--verde);
-  padding-left: 12px;
-  margin-bottom: 20px;
+.section h2{
+  color:var(--azul);
+  border-left:4px solid var(--verde);
+  padding-left:12px;
 }
-.grafico-container {
-  background: white;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  margin-bottom: 25px;
+.grafico-container{
+  background:#fff;
+  border-radius:10px;
+  padding:20px;
+  box-shadow:0 2px 8px rgba(0,0,0,.08);
 }
-canvas {
-  max-width: 100%;
-  height: 300px !important;
+canvas{
+  width:100%;
+  height:320px !important;
 }
-#loader {
-  text-align: center;
-  padding: 60px 20px;
-  font-size: 20px;
-  color: var(--azul);
+#loader{
+  text-align:center;
+  padding:60px 20px;
+  font-size:20px;
+  color:var(--azul);
 }
-.vaca {
-  font-size: 60px;
-  animation: mover 1.2s infinite alternate;
-  margin-bottom: 20px;
+.vaca{
+  font-size:60px;
+  animation:mover 1.2s infinite alternate;
 }
-@keyframes mover {
-  from { transform: translateX(-8px) rotate(-5deg); }
-  to { transform: translateX(8px) rotate(5deg); }
+@keyframes mover{
+  from{transform:translateX(-8px)}
+  to{transform:translateX(8px)}
 }
-.btn-volver {
-  background: var(--azul);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  margin: 30px auto 0;
-  font-size: 16px;
-  display: block;
-  font-weight: bold;
-  transition: all 0.2s;
+.error{
+  display:none;
+  background:#fadbd8;
+  color:#c0392b;
+  padding:20px;
+  border-radius:10px;
+  margin-top:30px;
+  text-align:center;
 }
-.btn-volver:hover {
-  background: #1e3a5f;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+.btn-volver{
+  background:var(--azul);
+  color:#fff;
+  border:none;
+  padding:12px 26px;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:bold;
+  display:block;
+  margin:30px auto 0;
 }
-.btn-volver:active {
-  transform: translateY(0);
-}
-.error {
-  color: #c0392b;
-  padding: 20px;
-  background: #fadbd8;
-  border-radius: 10px;
-  margin: 30px 0;
-  text-align: center;
-  font-size: 16px;
-  display: none;
-  border-left: 4px solid #c0392b;
+.btn-volver:hover{
+  background:#1e3a5f;
 }
 </style>
 </head>
+
 <body>
 <div class="container">
-  <h1>📊 Reporte de Inventario Ganadero</h1>
-  
-  <div id="loader">
-    <div class="vaca">🐄</div>
-    <div>Cargando datos ganaderos...</div>
+
+<h1>📊 Reporte de Inventario Ganadero</h1>
+
+<div id="loader">
+  <div class="vaca">🐄</div>
+  Cargando datos ganaderos…
+</div>
+
+<div id="contenido" style="display:none">
+
+  <div class="section">
+    <div class="numero-total" id="total-general">0</div>
+    <div class="subtitulo">Animales en inventario actual</div>
   </div>
-  
-  <div id="contenido" style="display:none">
-    
-    <!-- TOTAL GENERAL -->
-    <div class="section">
-      <div class="numero-total" id="total-general">0</div>
-      <div class="subtitulo">Animales en inventario actual</div>
+
+  <div class="section">
+    <h2>Inventario por Lote</h2>
+    <div class="grafico-container">
+      <canvas id="graficoLote"></canvas>
     </div>
-    
-    <!-- GRÁFICO POR LOTE -->
-    <div class="section">
-      <h2>Inventario por Lote</h2>
-      <div class="grafico-container">
-        <canvas id="graficoLote"></canvas>
-      </div>
-    </div>
-    
-    <!-- GRÁFICO POR TIPO -->
-    <div class="section">
-      <h2>Inventario por Tipo</h2>
-      <div class="grafico-container">
-        <canvas id="graficoTipo"></canvas>
-      </div>
-    </div>
-    
-    <!-- GRÁFICO DE HISTÓRICO -->
-    <div class="section">
-      <h2>Historial de Inventario</h2>
-      <div class="grafico-container">
-        <canvas id="graficoHistorico"></canvas>
-      </div>
-    </div>
-    
-    <button class="btn-volver" id="btnVolver">⬅ Volver al panel</button>
   </div>
-  
-  <div id="error" class="error"></div>
+
+  <div class="section">
+    <h2>Inventario por Tipo</h2>
+    <div class="grafico-container">
+      <canvas id="graficoTipo"></canvas>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Historial de Inventario</h2>
+    <div class="grafico-container">
+      <canvas id="graficoHistorico"></canvas>
+    </div>
+  </div>
+
+  <button class="btn-volver" onclick="volverPanel()">⬅ Volver al panel</button>
+</div>
+
+<div id="error" class="error"></div>
+
 </div>
 
 <script>
-(function() {
-  // 1️⃣ Leer email desde URL
-  const params = new URLSearchParams(window.location.search);
-  const email = params.get("email");
-  
-  if (!email) {
-    mostrarError("Acceso no autorizado. Inicie sesión desde el panel principal.");
+(function(){
+
+/* ===============================
+   LEER EMAIL
+=============================== */
+const params = new URLSearchParams(window.location.search);
+const email = params.get("email");
+
+if(!email){
+  mostrarError("Acceso no autorizado. Inicie sesión desde el panel.");
+  return;
+}
+
+/* ===============================
+   FETCH BACKEND
+=============================== */
+fetch("https://pysiga.d-alexjose.workers.dev",{
+  method:"POST",
+  headers:{ "Content-Type":"application/json" },
+  body:JSON.stringify({
+    accion:"reporteInventario",
+    email:email
+  })
+})
+.then(r=>{
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return r.json();
+})
+.then(data=>{
+  if(!data.ok){
+    mostrarError(data.error || "Respuesta inválida del servidor");
     return;
   }
 
-  // 2️⃣ FETCH CORRECTO: POST con estructura que espera tu Apps Script
-  fetch("https://pysiga.d-alexjose.workers.dev", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
+  document.getElementById("total-general").textContent = data.total || 0;
+
+  renderizarGraficoLote(data.porLote || {});
+  renderizarGraficoTipo(data.porTipo || {});
+  renderizarGraficoHistorico(data.historico || []);
+
+  document.getElementById("loader").style.display="none";
+  document.getElementById("contenido").style.display="block";
+})
+.catch(err=>{
+  mostrarError("Error al cargar datos: "+err.message);
+});
+
+/* ===============================
+   GRAFICOS
+=============================== */
+function renderizarGraficoLote(datos){
+  new Chart(document.getElementById("graficoLote"),{
+    type:"bar",
+    data:{
+      labels:Object.keys(datos),
+      datasets:[{
+        data:Object.values(datos),
+        backgroundColor:"#2f6f4e"
+      }]
     },
-    body: JSON.stringify({
-      accion: "reporteInventario",
-      email: email
-    })
-  })
-  .then(response => {
-    if (!response.ok) throw new Error("Error del servidor: " + response.status);
-    return response.json();
-  })
-  .then(data => {
-    console.log("Datos recibidos:", data);
-    
-    if (!data.ok) {
-      mostrarError("Error del servidor: " + (data.error || "Respuesta inválida"));
-      return;
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{ y:{ beginAtZero:true } }
     }
-    
-    // 3️⃣ CORRECCIÓN CLAVE: usar las propiedades correctas (con mayúsculas como tu backend las envía)
-    const total = data.total || 0;
-    const porLote = data.porLote || {};
-    const porTipo = data.porTipo || {};
-    const historico = data.historico || [];
-    
-    if (total === 0 && historico.length === 0) {
-      mostrarError("No se encontraron registros de inventario para este usuario");
-      return;
-    }
-    
-    // Renderizar todo
-    document.getElementById("total-general").textContent = total;
-    renderizarGraficoLote(porLote);
-    renderizarGraficoTipo(porTipo);
-    renderizarGraficoHistorico(historico);
-    
-    // Mostrar contenido
-    document.getElementById("loader").style.display = "none";
-    document.getElementById("contenido").style.display = "block";
-    
-    // 4️⃣ CONFIGURAR BOTÓN DE VOLVER (CORREGIDO)
-    document.getElementById("btnVolver").addEventListener("click", function() {
-      console.log("Botón volver clickeado");
-      
-      // Redirigir al panel principal
-      window.location.href = "https://www.pysiga.com";
-    });
-  })
-  .catch(err => {
-    console.error("Error completo:", err);
-    mostrarError("Error al cargar los datos: " + err.message);
   });
+}
 
-  // 5️⃣ GRÁFICO POR LOTE
-  function renderizarGraficoLote(datos) {
-    const lotes = Object.keys(datos);
-    const cantidades = Object.values(datos);
-    
-    if (lotes.length === 0) {
-      document.getElementById("graficoLote").parentElement.innerHTML = 
-        "<p style='text-align:center;color:#999'>No hay datos por lote</p>";
-      return;
+function renderizarGraficoTipo(datos){
+  new Chart(document.getElementById("graficoTipo"),{
+    type:"doughnut",
+    data:{
+      labels:Object.keys(datos),
+      datasets:[{
+        data:Object.values(datos),
+        backgroundColor:["#2f6f4e","#2c4f7c","#8b6f47","#7f8c8d"]
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false
     }
-    
-    new Chart(document.getElementById("graficoLote"), {
-      type: 'bar',
-       {
-        labels: lotes,
-        datasets: [{
-          label: 'Cantidad de animales',
-           cantidades,
-          backgroundColor: lotes.map((_, i) => 
-            `hsl(${i * 40}, 60%, 55%)`
-          ),
-          borderColor: lotes.map((_, i) => 
-            `hsl(${i * 40}, 60%, 40%)`
-          ),
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: context => `${context.parsed.y} animales`
-            }
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: { display: true, text: 'Cantidad' },
-            grid: { color: 'rgba(0,0,0,0.05)' }
-          },
-          x: {
-            title: { display: true, text: 'Lote' },
-            grid: { display: false }
-          }
-        }
-      }
-    });
-  }
+  });
+}
 
-  // 6️⃣ GRÁFICO POR TIPO
-  function renderizarGraficoTipo(datos) {
-    const tipos = Object.keys(datos);
-    const cantidades = Object.values(datos);
-    
-    if (tipos.length === 0) {
-      document.getElementById("graficoTipo").parentElement.innerHTML = 
-        "<p style='text-align:center;color:#999'>No hay datos por tipo</p>";
-      return;
+function renderizarGraficoHistorico(hist){
+  const fechas = hist.map(r=>r.fecha || "—");
+  const valores = hist.map(r=>Number(r.total || 0));
+
+  new Chart(document.getElementById("graficoHistorico"),{
+    type:"line",
+    data:{
+      labels:fechas,
+      datasets:[{
+        data:valores,
+        borderColor:"#2f6f4e",
+        backgroundColor:"rgba(47,111,78,.15)",
+        fill:true,
+        tension:.3
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } }
     }
-    
-    new Chart(document.getElementById("graficoTipo"), {
-      type: 'doughnut',
-       {
-        labels: tipos,
-        datasets: [{
-           cantidades,
-          backgroundColor: tipos.map((_, i) => 
-            `hsl(${i * 60 + 200}, 70%, 60%)`
-          ),
-          borderWidth: 2,
-          borderColor: '#fff'
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { 
-            position: 'right',
-            labels: {
-              padding: 20,
-              font: { size: 14 }
-            }
-          },
-          tooltip: {
-            callbacks: {
-              label: context => `${context.label}: ${context.parsed} animales`
-            }
-          }
-        }
-      }
-    });
-  }
+  });
+}
 
-  // 7️⃣ GRÁFICO DE HISTÓRICO (CORREGIDO)
-  function renderizarGraficoHistorico(historico) {
-    if (historico.length === 0) {
-      document.getElementById("graficoHistorico").parentElement.innerHTML = 
-        "<p style='text-align:center;color:#999'>No hay datos históricos</p>";
-      return;
-    }
-    
-    // Tomar últimos 20 registros para no saturar
-    const ultimos = historico.slice(-20);
-    const fechas = ultimos.map(r => r.fecha || r.Fecha || 'Sin fecha');
-    const cantidades = ultimos.map(r => parseInt(r.total || r.cantidad || r.Cantidad || 0));
-    
-    new Chart(document.getElementById("graficoHistorico"), {
-      type: 'line',
-       {
-        labels: fechas,
-        datasets: [{
-          label: 'Total de animales',
-           cantidades,
-          borderColor: '#2f6f4e',
-          backgroundColor: 'rgba(47, 111, 78, 0.1)',
-          borderWidth: 3,
-          fill: true,
-          tension: 0.3,
-          pointRadius: 4,
-          pointBackgroundColor: '#2f6f4e'
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: context => `Total: ${context.parsed.y} animales`
-            }
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: { display: true, text: 'Cantidad' },
-            grid: { color: 'rgba(0,0,0,0.05)' }
-          },
-          x: {
-            title: { display: true, text: 'Fecha' },
-            grid: { display: false }
-          }
-        }
-      }
-    });
-  }
+/* ===============================
+   UTILIDADES
+=============================== */
+function mostrarError(msg){
+  document.getElementById("loader").style.display="none";
+  const e=document.getElementById("error");
+  e.textContent=msg;
+  e.style.display="block";
+}
 
-  // 8️⃣ FUNCIONES AUXILIARES
-  function mostrarError(mensaje) {
-    document.getElementById("loader").style.display = "none";
-    const err = document.getElementById("error");
-    err.textContent = mensaje;
-    err.style.display = "block";
+/* ===============================
+   RETORNO CORRECTO AL PANEL
+=============================== */
+window.volverPanel = function(){
+  if (window.history.length > 1) {
+    window.history.back();   // 👈 vuelve al panel real
+  } else {
+    window.location.href = "https://www.pysiga.com"; // respaldo
   }
+};
+
 })();
 </script>
+
 </body>
 </html>
-
