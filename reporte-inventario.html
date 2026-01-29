@@ -154,7 +154,7 @@ canvas {
       </div>
     </div>
     
-    <button class="btn-volver" id="btnVolver">⬅ Volver al panel principal</button>
+    <button class="btn-volver" id="btnVolver">⬅ Cerrar reporte y volver al panel</button>
   </div>
   
   <div id="error" class="error"></div>
@@ -242,10 +242,10 @@ function init() {
     document.getElementById("loader").style.display = "none";
     document.getElementById("contenido").style.display = "block";
     
-    // Botón volver
+    // Botón volver - CORREGIDO: cerrar pestaña actual
     document.getElementById("btnVolver").addEventListener("click", function() {
-      console.log("🔴 Botón volver clickeado");
-      window.open("https://www.pysiga.com", "_self");
+      console.log("🔴 Botón cerrar clickeado - Cerrando pestaña del reporte");
+      window.close();
     });
   })
   .catch(err => {
@@ -271,11 +271,11 @@ function renderizarGraficoLote() {
   
   new Chart(document.getElementById("graficoLote"), {
     type: 'bar',
-    data: {
+     {
       labels: lotes,
       datasets: [{
         label: 'Cantidad',
-        data: cantidades,
+         cantidades,
         backgroundColor: lotes.map((_, i) => `hsl(${i * 40}, 60%, 55%)`),
         borderColor: lotes.map((_, i) => `hsl(${i * 40}, 60%, 40%)`),
         borderWidth: 1
@@ -322,7 +322,7 @@ function renderizarGraficoTipo() {
     data: {
       labels: tipos,
       datasets: [{
-        data: cantidades,
+         cantidades,
         backgroundColor: tipos.map((_, i) => `hsl(${i * 60 + 200}, 70%, 60%)`),
         borderWidth: 2,
         borderColor: '#fff'
@@ -393,11 +393,11 @@ function renderizarGraficoHistorico() {
   
   new Chart(document.getElementById("graficoHistorico"), {
     type: 'line',
-    data: {
+     {
       labels: fechas,
       datasets: [{
         label: 'Cantidad total',
-        data: cantidades,
+         cantidades,
         borderColor: '#2f6f4e',
         backgroundColor: 'rgba(47, 111, 78, 0.1)',
         borderWidth: 3,
