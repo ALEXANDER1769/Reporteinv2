@@ -62,27 +62,56 @@ canvas{width:100%;height:320px!important}
 <script>
 (function(){
 
-const params=new URLSearchParams(location.search);
-const email=params.get("email");
+/* ===============================
+   PARAMETROS
+=============================== */
+const params = new URLSearchParams(location.search);
+const email  = params.get("email");
+const retorno = params.get("return"); // 👈 CLAVE
 
 if(!email){
   mostrarError("Acceso no autorizado");
   return;
 }
 
+/* ===============================
+   FETCH
+=============================== */
 fetch("https://pysiga.d-alexjose.workers.dev",{
   method:"POST",
   headers:{ "Content-Type":"application/json" },
-  body:JSON.stringify({accion:"reporteInventario",email})
+  body:JSON.stringify({ accion:"reporteInventario", email })
 })
 .then(r=>r.json())
 .then(d=>{
-  if(!d.ok){mostrarError(d.error||"Error");return}
-  document.getElementById("total-general").textContent=d.total||0;
-  new Chart(graficoLote,{type:"bar",data:{labels:Object.keys(d.porLote||{}),datasets:[{data:Object.values(d.porLote||{}),backgroundColor:"#2f6f4e"}]}});
-  new Chart(graficoTipo,{type:"doughnut",data:{labels:Object.keys(d.porTipo||{}),datasets:[{data:Object.values(d.porTipo||{}),backgroundColor:["#2f6f4e","#2c4f7c","#8b6f47"]}]}});
-  new Chart(graficoHistorico,{type:"line",data:{labels:(d.historico||[]).map(x=>x.fecha),datasets:[{data:(d.historico||[]).map(x=>x.total),borderColor:"#2f6f4e",fill:true}]}});
-  loader.style.display="none";contenido.style.display="block";
+  if(!d.ok){ mostrarError(d.error||"Error"); return; }
+
+  total-general.textContent = d.total || 0;
+
+  new Chart(graficoLote,{
+    type:"bar",
+    data:{ labels:Object.keys(d.porLote||{}),
+           datasets:[{ data:Object.values(d.porLote||{}),
+                       backgroundColor:"#2f6f4e"}] }
+  });
+
+  new Chart(graficoTipo,{
+    type:"doughnut",
+    data:{ labels:Object.keys(d.porTipo||{}),
+           datasets:[{ data:Object.values(d.porTipo||{}),
+                       backgroundColor:["#2f6f4e","#2c4f7c","#8b6f47"]}] }
+  });
+
+  new Chart(graficoHistorico,{
+    type:"line",
+    data:{ labels:(d.historico||[]).map(x=>x.fecha),
+           datasets:[{ data:(d.historico||[]).map(x=>x.total),
+                       borderColor:"#2f6f4e",
+                       fill:true }] }
+  });
+
+  loader.style.display="none";
+  contenido.style.display="block";
 })
 .catch(e=>mostrarError(e.message));
 
@@ -92,12 +121,14 @@ function mostrarError(m){
   error.style.display="block";
 }
 
-/* 🔥 RETORNO DEFINITIVO */
-window.volverPanel=function(){
-  if(document.referrer){
-    location.href=document.referrer;
-  }else{
-    location.href="https://www.pysiga.com/panel?email="+encodeURIComponent(email);
+/* ===============================
+   RETORNO SIN BUCLE
+=============================== */
+window.volverPanel = function(){
+  if (retorno) {
+    location.href = retorno + "?email=" + encodeURIComponent(email);
+  } else {
+    location.href = "https://www.pysiga.com/panel?email=" + encodeURIComponent(email);
   }
 };
 
