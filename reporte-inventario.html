@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>Reporte de Inventario - PYSIGA</title>
-<!-- Chart.js - SIN ESPACIOS -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root {
@@ -123,13 +122,11 @@ canvas {
 
   <div id="contenido" style="display:none">
 
-    <!-- TOTAL GENERAL -->
     <div class="section">
       <div class="numero-total" id="total-general">0</div>
       <div class="subtitulo">Animales en inventario actual</div>
     </div>
 
-    <!-- GRÁFICO POR LOTE -->
     <div class="section">
       <h2>Inventario por Lote</h2>
       <div class="grafico-container">
@@ -137,7 +134,6 @@ canvas {
       </div>
     </div>
 
-    <!-- GRÁFICO POR TIPO -->
     <div class="section">
       <h2>Inventario por Tipo</h2>
       <div class="grafico-container">
@@ -145,9 +141,8 @@ canvas {
       </div>
     </div>
 
-    <!-- GRÁFICO DE HISTÓRICO -->
     <div class="section">
-      <h2>Historial de Inventario</h2>
+      <h2>Historial de Inventario (Últimos 6 meses)</h2>
       <div class="grafico-container">
         <canvas id="graficoHistorico"></canvas>
       </div>
@@ -199,17 +194,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Extraer datos
-    totalGeneral = data.total || 0;
-    datosPorLote = data.porLote || {};
-    datosPorTipo = data.porTipo || {};
-    datosHistorico = data.historico || [];
+    totalGeneral = data.stats.total || 0; // Ajustado para que coincida con tu API actual
+    datosPorLote = data.stats.porLote || {};
+    datosPorTipo = data.stats.porTipo || {};
+    // Asumiendo que data.historico viene en el JSON, si no, hay que añadirlo al API
+    datosHistorico = data.historico || []; 
 
     console.log("📊 Total:", totalGeneral);
     console.log("📊 Por Lote:", datosPorLote);
     console.log("📊 Por Tipo:", datosPorTipo);
     console.log("📊 Histórico:", datosHistorico.length, "registros");
 
-    if (totalGeneral === 0 && datosHistorico.length === 0) {
+    // Permitir renderizar incluso si no hay histórico, para mostrar los otros gráficos
+    if (totalGeneral === 0 && Object.keys(datosPorLote).length === 0) {
       throw new Error("No se encontraron registros de inventario");
     }
 
@@ -316,36 +313,51 @@ function renderizarGraficoTipo() {
   });
 }
 
-// Gráfico de Histórico
+// Gráfico de Histórico (MODIFICADO PARA 6 MESES)
 function renderizarGraficoHistorico() {
-  if (datosHistorico.length === 0) {
+  if (!datosHistorico || datosHistorico.length === 0) {
     document.getElementById("graficoHistorico").parentElement.innerHTML =
-      "<p style='text-align:center;color:#999'>No hay datos históricos</p>";
+      "<p style='text-align:center;color:#999'>No hay datos históricos disponibles.</p>";
     return;
   }
 
-  // Tomar últimos 20 registros
-  const ultimos = datosHistorico.slice(-20);
+  // 1. Determinar la fecha hace 6 meses
+  const fechaLimite = new Date();
+  fechaLimite.setMonth(fechaLimite.getMonth() - 6);
+
+  // 2. Filtrar los datos para que solo incluyan los últimos 6 meses
+  const datosFiltrados = datosHistorico.filter(registro => {
+    let fechaStr = registro.fecha || registro.Fecha || registro["Fecha/Hora"];
+    if (!fechaStr) return false;
+    
+    // Intentar convertir a Date si es string YYYY-MM-DD
+    let f = new Date(fechaStr);
+    
+    // Validar que la fecha sea real y posterior a la fecha límite
+    return !isNaN(f.getTime()) && f >= fechaLimite;
+  });
+
+  // 3. Ordenar cronológicamente por si acaso
+  datosFiltrados.sort((a, b) => {
+    let fA = new Date(a.fecha || a.Fecha || a["Fecha/Hora"]);
+    let fB = new Date(b.fecha || b.Fecha || b["Fecha/Hora"]);
+    return fA - fB;
+  });
+
   const fechas = [];
   const cantidades = [];
 
-  ultimos.forEach((registro, index) => {
-    // Extraer fecha (probando múltiples nombres)
-    let fecha = registro.fecha || registro.Fecha || registro["Fecha/Hora"] || 'Sin fecha';
-    fechas.push(fecha);
+  datosFiltrados.forEach(registro => {
+    let fechaStr = registro.fecha || registro.Fecha || registro["Fecha/Hora"];
+    fechas.push(fechaStr);
 
-    // Extraer cantidad (probando múltiples nombres)
     let cantidad = registro.cantidad || registro.Cantidad || registro["TOTAL GENERAL"] || registro.total || 0;
     cantidades.push(parseInt(cantidad));
   });
 
-  // Verificar si hay datos numéricos válidos
-  const hayDatosValidos = cantidades.some(c => !isNaN(c) && c > 0);
-
-  if (!hayDatosValidos) {
-    console.warn("⚠️ No hay datos numéricos válidos en el histórico");
+  if (cantidades.length === 0) {
     document.getElementById("graficoHistorico").parentElement.innerHTML =
-      "<p style='text-align:center;color:#999'>No hay datos numéricos válidos</p>";
+      "<p style='text-align:center;color:#999'>No hay datos históricos en los últimos 6 meses.</p>";
     return;
   }
 
@@ -392,7 +404,7 @@ function renderizarGraficoHistorico() {
             maxRotation: 45,
             minRotation: 45,
             autoSkip: true,
-            maxTicksLimit: 10
+            maxTicksLimit: 12 // Un poco más de ticks para 6 meses
           }
         }
       }
