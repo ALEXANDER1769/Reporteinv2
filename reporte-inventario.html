@@ -161,11 +161,7 @@ let datosPorLote = {};
 let datosPorTipo = {};
 let datosHistorico = [];
 
-// Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
-  console.log("🚀 Iniciando reporte de inventario...");
-
-  // Obtener email de la URL
   const params = new URLSearchParams(window.location.search);
   const email = params.get("email");
 
@@ -174,9 +170,6 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
 
-  console.log("📧 Email:", email);
-
-  // Fetch con POST (CORREGIDO - SIN ESPACIOS EN URL)
   fetch("https://pysiga.d-alexjose.workers.dev", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -187,26 +180,15 @@ document.addEventListener('DOMContentLoaded', function() {
     return response.json();
   })
   .then(data => {
-    console.log("✅ Datos recibidos:", data);
+    if (!data.ok) throw new Error(data.error || "Respuesta inválida del servidor");
 
-    if (!data.ok) {
-      throw new Error(data.error || "Respuesta inválida del servidor");
-    }
+    // LECTURA ORIGINAL INTACTA
+    totalGeneral = data.total || 0;
+    datosPorLote = data.porLote || {};
+    datosPorTipo = data.porTipo || {};
+    datosHistorico = data.historico || [];
 
-    // Extraer datos
-    totalGeneral = data.stats.total || 0; // Ajustado para que coincida con tu API actual
-    datosPorLote = data.stats.porLote || {};
-    datosPorTipo = data.stats.porTipo || {};
-    // Asumiendo que data.historico viene en el JSON, si no, hay que añadirlo al API
-    datosHistorico = data.historico || []; 
-
-    console.log("📊 Total:", totalGeneral);
-    console.log("📊 Por Lote:", datosPorLote);
-    console.log("📊 Por Tipo:", datosPorTipo);
-    console.log("📊 Histórico:", datosHistorico.length, "registros");
-
-    // Permitir renderizar incluso si no hay histórico, para mostrar los otros gráficos
-    if (totalGeneral === 0 && Object.keys(datosPorLote).length === 0) {
+    if (totalGeneral === 0 && datosHistorico.length === 0) {
       throw new Error("No se encontraron registros de inventario");
     }
 
@@ -216,18 +198,15 @@ document.addEventListener('DOMContentLoaded', function() {
     renderizarGraficoTipo();
     renderizarGraficoHistorico();
 
-    // Mostrar contenido y ocultar loader
+    // Mostrar contenido
     document.getElementById("loader").style.display = "none";
     document.getElementById("contenido").style.display = "block";
 
-    // Configurar botón de volver (CIERRA esta pestaña)
     document.getElementById("btnVolver").addEventListener("click", function() {
-      console.log("✅ Cerrando pestaña del reporte...");
       window.close();
     });
   })
   .catch(err => {
-    console.error("❌ Error:", err);
     mostrarError("Error al cargar los datos: " + err.message);
   });
 });
@@ -257,20 +236,9 @@ function renderizarGraficoLote() {
       }]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: context => `${context.parsed.y} animales`
-          }
-        }
-      },
-      scales: {
-        y: { beginAtZero: true, title: { display: true, text: 'Cantidad' } },
-        x: { title: { display: true, text: 'Lote' } }
-      }
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
     }
   });
 }
@@ -294,30 +262,18 @@ function renderizarGraficoTipo() {
       datasets: [{
         data: cantidades,
         backgroundColor: tipos.map((_, i) => `hsl(${i * 60 + 200}, 70%, 60%)`),
-        borderWidth: 2,
-        borderColor: '#fff'
+        borderWidth: 2, borderColor: '#fff'
       }]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'right' },
-        tooltip: {
-          callbacks: {
-            label: context => `${context.label}: ${context.parsed} animales`
-          }
-        }
-      }
-    }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
   });
 }
 
-// Gráfico de Histórico (MODIFICADO PARA 6 MESES)
+// Gráfico de Histórico (MODIFICADO A 6 MESES)
 function renderizarGraficoHistorico() {
-  if (!datosHistorico || datosHistorico.length === 0) {
+  if (datosHistorico.length === 0) {
     document.getElementById("graficoHistorico").parentElement.innerHTML =
-      "<p style='text-align:center;color:#999'>No hay datos históricos disponibles.</p>";
+      "<p style='text-align:center;color:#999'>No hay datos históricos</p>";
     return;
   }
 
@@ -325,19 +281,15 @@ function renderizarGraficoHistorico() {
   const fechaLimite = new Date();
   fechaLimite.setMonth(fechaLimite.getMonth() - 6);
 
-  // 2. Filtrar los datos para que solo incluyan los últimos 6 meses
+  // 2. Filtrar los últimos 6 meses
   const datosFiltrados = datosHistorico.filter(registro => {
     let fechaStr = registro.fecha || registro.Fecha || registro["Fecha/Hora"];
     if (!fechaStr) return false;
-    
-    // Intentar convertir a Date si es string YYYY-MM-DD
     let f = new Date(fechaStr);
-    
-    // Validar que la fecha sea real y posterior a la fecha límite
     return !isNaN(f.getTime()) && f >= fechaLimite;
   });
 
-  // 3. Ordenar cronológicamente por si acaso
+  // 3. Ordenar cronológicamente
   datosFiltrados.sort((a, b) => {
     let fA = new Date(a.fecha || a.Fecha || a["Fecha/Hora"]);
     let fB = new Date(b.fecha || b.Fecha || b["Fecha/Hora"]);
@@ -349,15 +301,17 @@ function renderizarGraficoHistorico() {
 
   datosFiltrados.forEach(registro => {
     let fechaStr = registro.fecha || registro.Fecha || registro["Fecha/Hora"];
-    fechas.push(fechaStr);
+    // Extraer solo la fecha (YYYY-MM-DD) si viene con hora
+    fechas.push(fechaStr.split('T')[0].split(' ')[0]);
 
-    let cantidad = registro.cantidad || registro.Cantidad || registro["TOTAL GENERAL"] || registro.total || 0;
+    let cantidad = registro.total || registro.cantidad || registro.Cantidad || registro["TOTAL GENERAL"] || 0;
     cantidades.push(parseInt(cantidad));
   });
 
-  if (cantidades.length === 0) {
+  // Verificar si hay datos numéricos válidos en esos 6 meses
+  if (cantidades.length === 0 || !cantidades.some(c => !isNaN(c) && c > 0)) {
     document.getElementById("graficoHistorico").parentElement.innerHTML =
-      "<p style='text-align:center;color:#999'>No hay datos históricos en los últimos 6 meses.</p>";
+      "<p style='text-align:center;color:#999'>No hay datos válidos en los últimos 6 meses</p>";
     return;
   }
 
@@ -375,44 +329,20 @@ function renderizarGraficoHistorico() {
         fill: true,
         tension: 0.3,
         pointRadius: 6,
-        pointBackgroundColor: '#2f6f4e',
-        pointHoverRadius: 8,
-        pointHoverBackgroundColor: '#1e3a5f'
+        pointBackgroundColor: '#2f6f4e'
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true },
-        tooltip: {
-          callbacks: {
-            label: context => `Cantidad: ${context.parsed.y}`
-          }
-        }
-      },
       scales: {
-        y: {
-          beginAtZero: true,
-          title: { display: true, text: 'Cantidad' },
-          grid: { color: 'rgba(0,0,0,0.05)' }
-        },
-        x: {
-          title: { display: true, text: 'Fecha' },
-          grid: { display: false },
-          ticks: {
-            maxRotation: 45,
-            minRotation: 45,
-            autoSkip: true,
-            maxTicksLimit: 12 // Un poco más de ticks para 6 meses
-          }
-        }
+        y: { beginAtZero: true, title: { display: true, text: 'Cantidad' } },
+        x: { title: { display: true, text: 'Fecha' }, ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 12 } }
       }
     }
   });
 }
 
-// Mostrar error
 function mostrarError(mensaje) {
   document.getElementById("loader").style.display = "none";
   const err = document.getElementById("error");
