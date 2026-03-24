@@ -2,160 +2,153 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Reporte de Inventario - PYSIGA</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📊 Reporte de Inventario - PYSIGA</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-:root {
-  --verde: #2f6f4e;
-  --azul: #2c4f7c;
-  --fondo: #f7f9f8;
+:root { 
+  /* COLORES VIVOS Y MODERNOS (FLAT DESIGN) */
+  --verde: #00b894; 
+  --verde-claro: #55efc4; 
+  --azul: #0984e3; 
+  --azul-claro: #74b9ff;
+  --tierra: #e17055; 
+  --rojo: #d63031; 
+  --rojo-claro: #fab1a0;
+  --gris: #636e72; 
+  --gris-claro: #dfe6e9;
+  --morado: #6c5ce7; 
+  --amarillo: #fdcb6e;
+  --fondo: #f4f6f8; 
+  --blanco: #ffffff; 
+  --borde: #dfe6e9;
 }
-body {
-  font-family: system-ui, Arial;
-  background: var(--fondo);
-  margin: 0;
-  padding: 20px;
-}
-.container {
-  max-width: 1200px;
-  margin: auto;
-  background: white;
-  border-radius: 12px;
-  padding: 25px;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.1);
-}
-h1 {
-  color: var(--azul);
-  margin-bottom: 15px;
-  text-align: center;
-}
-.numero-total {
-  font-size: 64px;
-  font-weight: bold;
-  color: var(--verde);
-  text-align: center;
-  margin: 20px 0;
-}
-.subtitulo {
-  text-align: center;
-  color: #666;
-  margin-bottom: 30px;
-  font-size: 18px;
-}
-.section {
-  margin-bottom: 40px;
-}
-.section h2 {
-  color: var(--azul);
-  border-left: 4px solid var(--verde);
-  padding-left: 12px;
-  margin-bottom: 20px;
-}
-.grafico-container {
-  background: white;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  margin-bottom: 25px;
-}
-canvas {
-  max-width: 100%;
-  height: 300px !important;
-}
-#loader {
-  text-align: center;
-  padding: 60px 20px;
-  font-size: 20px;
-  color: var(--azul);
-}
-.vaca {
-  font-size: 60px;
-  animation: mover 1.2s infinite alternate;
-  margin-bottom: 20px;
-}
-@keyframes mover {
-  from { transform: translateX(-8px) rotate(-5deg); }
-  to { transform: translateX(8px) rotate(5deg); }
-}
-.btn-volver {
-  background: var(--azul);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  margin: 30px auto 0;
-  font-size: 16px;
-  display: block;
-  font-weight: bold;
-  transition: all 0.2s;
-}
-.btn-volver:hover {
-  background: #1e3a5f;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-}
-.btn-volver:active {
-  transform: translateY(0);
-}
-.error {
-  color: #c0392b;
-  padding: 20px;
-  background: #fadbd8;
-  border-radius: 10px;
-  margin: 30px 0;
-  text-align: center;
-  font-size: 16px;
-  display: none;
-  border-left: 4px solid #c0392b;
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: var(--fondo); color: #2d3436; line-height: 1.5; padding: 20px;}
+.container { max-width: 1300px; margin: auto; padding: 25px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);}
+
+/* ENCABEZADOS CENTRADOS */
+.header { text-align: center; padding: 10px 0 25px 0; margin-bottom: 25px; border-bottom: 3px solid var(--azul); position: relative; }
+.header h1 { color: var(--azul); font-size: 32px; margin: 0; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; }
+.header-actions { position: absolute; right: 0; top: 10px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;}
+
+h2, h3 { text-align: center; font-weight: 800; color: var(--azul); margin-bottom: 15px; }
+.card-title-container { text-align: center; margin-bottom: 20px; }
+.card-title { font-size: 18px; font-weight: 800; color: var(--azul); display: inline-block; padding-bottom: 8px; border-bottom: 3px solid var(--azul-claro); text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* BOTONES */
+.btn { padding: 10px 18px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 3px 6px rgba(0,0,0,0.1); font-size: 14px;}
+.btn:hover { transform: translateY(-2px); box-shadow: 0 5px 10px rgba(0,0,0,0.15); }
+.btn-primary { background: var(--azul); color: white; }
+.btn-secondary { background: var(--gris); color: white; }
+
+.btn-volver { background: var(--rojo); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; margin: 40px auto 0; font-size: 15px; display: block; font-weight: bold; transition: all 0.2s; box-shadow: 0 4px 8px rgba(214,48,49,0.3); }
+.btn-volver:hover { background: #b33939; transform: scale(1.02); }
+
+/* TARJETAS Y KPI */
+.card { background: var(--blanco); border-radius: 12px; padding: 25px; margin-bottom: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); border-top: 5px solid var(--azul-claro); }
+
+.kpi-grid { display: grid; grid-template-columns: 1fr; max-width: 450px; margin: 0 auto 35px auto; }
+.kpi-card { background: var(--blanco); padding: 25px; border-radius: 12px; text-align: center; border-top: 5px solid var(--verde); box-shadow: 0 4px 15px rgba(0,0,0,0.08); transition: transform 0.2s; }
+.kpi-card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+
+.kpi-label { font-size: 15px; color: var(--azul); font-weight: 800; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px; }
+.numero-total { font-size: 64px; font-weight: 900; color: var(--verde); margin: 0; text-shadow: 1px 2px 4px rgba(0,0,0,0.1); line-height: 1.1; }
+.kpi-unit { font-size: 13px; font-weight: 700; color: #fff; background: var(--verde); padding: 6px 16px; border-radius: 20px; display: inline-block; letter-spacing: 0.5px; margin-top: 10px; }
+
+/* GRÁFICOS */
+.chart-container { position: relative; height: 380px; width: 100%; margin: 15px 0; }
+
+/* LOADER ANIMADO */
+#loader { text-align: center; padding: 80px 20px; height: 50vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.vaca { font-size: 70px; margin-bottom: 20px; animation: mover 0.8s infinite alternate ease-in-out; }
+@keyframes mover { from { transform: translateY(0) scale(1); } to { transform: translateY(-15px) scale(1.1); } }
+#loader p { font-weight: 800; color: var(--azul); font-size: 18px; letter-spacing: 1px; text-transform: uppercase; }
+
+.error { color: #c0392b; padding: 20px; background: #fadbd8; border-radius: 10px; margin: 30px 0; text-align: center; font-size: 16px; display: none; border-left: 5px solid #c0392b; font-weight: bold; }
+
+@media print {
+  .header-actions, .btn-volver { display: none !important; }
+  .container { box-shadow: none; padding: 0; }
+  body { background: white; }
+  .card { page-break-inside: avoid; border: 1px solid #eee; box-shadow: none; }
 }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>📊 Reporte de Inventario Ganadero</h1>
+  
+  <div class="header">
+    <h1>📊 Reporte de Inventario Ganadero</h1>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="window.print()">🖨️ Imprimir</button>
+      <button class="btn btn-primary" onclick="location.reload()">🔄 Actualizar</button>
+    </div>
+  </div>
 
   <div id="loader">
     <div class="vaca">🐄</div>
-    <div>Cargando datos ganaderos...</div>
+    <p>Calculando Inventario General...</p>
   </div>
 
   <div id="contenido" style="display:none">
 
-    <div class="section">
-      <div class="numero-total" id="total-general">0</div>
-      <div class="subtitulo">Animales en inventario actual</div>
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Población Actual</div>
+        <div class="numero-total" id="total-general">0</div>
+        <div class="kpi-unit">Cabezas de Ganado</div>
+      </div>
     </div>
 
-    <div class="section">
-      <h2>Inventario por Lote</h2>
-      <div class="grafico-container">
+    <div class="card" style="border-top-color: var(--azul);">
+      <div class="card-title-container"><div class="card-title">📦 Distribución de Inventario por Lote</div></div>
+      <div class="chart-container">
         <canvas id="graficoLote"></canvas>
       </div>
     </div>
 
-    <div class="section">
-      <h2>Inventario por Tipo</h2>
-      <div class="grafico-container">
+    <div class="card" style="border-top-color: var(--morado);">
+      <div class="card-title-container"><div class="card-title" style="color: var(--morado); border-color: #a29bfe;">🧬 Estructura del Rebaño por Clasificación</div></div>
+      <div class="chart-container">
         <canvas id="graficoTipo"></canvas>
       </div>
     </div>
 
-    <div class="section">
-      <h2>Historial de Inventario (Últimos 6 meses)</h2>
-      <div class="grafico-container">
+    <div class="card" style="border-top-color: var(--verde);">
+      <div class="card-title-container"><div class="card-title" style="color: var(--verde); border-color: var(--verde-claro);">📈 Histórico de Inventario (Últimos 6 Meses)</div></div>
+      <div class="chart-container">
         <canvas id="graficoHistorico"></canvas>
       </div>
     </div>
 
-    <button class="btn-volver" id="btnVolver">⬅ Cerrar reporte y volver al panel</button>
+    <button class="btn-volver" id="btnVolver">✕ Cerrar reporte y volver al panel principal</button>
   </div>
 
   <div id="error" class="error"></div>
 </div>
 
 <script>
-// Variables para los datos
+// 🔥 PLUGIN CUSTOM PARA EFECTO 3D EN LAS GRÁFICAS
+const pluginSombra3D = {
+  id: 'sombra3D',
+  beforeDatasetsDraw: function(chart) {
+    const ctx = chart.ctx;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.35)'; // Sombra oscura
+    ctx.shadowBlur = 10; 
+    ctx.shadowOffsetX = 4; 
+    ctx.shadowOffsetY = 4; 
+  },
+  afterDatasetsDraw: function(chart) {
+    chart.ctx.restore();
+  }
+};
+Chart.register(pluginSombra3D);
+
+// Paleta de colores vivos global para gráficos
+const coloresVivos = ['#0984e3', '#00b894', '#fdcb6e', '#6c5ce7', '#e17055', '#d63031', '#00cec9', '#e84393', '#2d3436', '#f1c40f'];
+
 let totalGeneral = 0;
 let datosPorLote = {};
 let datosPorTipo = {};
@@ -192,8 +185,8 @@ document.addEventListener('DOMContentLoaded', function() {
       throw new Error("No se encontraron registros de inventario");
     }
 
-    // Renderizar gráficos
-    document.getElementById("total-general").textContent = totalGeneral;
+    // Renderizar gráficos y números
+    document.getElementById("total-general").textContent = totalGeneral.toLocaleString();
     renderizarGraficoLote();
     renderizarGraficoTipo();
     renderizarGraficoHistorico();
@@ -203,7 +196,11 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById("contenido").style.display = "block";
 
     document.getElementById("btnVolver").addEventListener("click", function() {
-      window.close();
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.close();
+      }
     });
   })
   .catch(err => {
@@ -211,14 +208,12 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-// Gráfico por Lote
 function renderizarGraficoLote() {
   const lotes = Object.keys(datosPorLote);
   const cantidades = Object.values(datosPorLote);
 
   if (lotes.length === 0) {
-    document.getElementById("graficoLote").parentElement.innerHTML =
-      "<p style='text-align:center;color:#999'>No hay datos por lote</p>";
+    document.getElementById("graficoLote").parentElement.innerHTML = "<p style='text-align:center;color:#999;font-weight:bold;padding:40px;'>No hay datos por lote</p>";
     return;
   }
 
@@ -228,31 +223,35 @@ function renderizarGraficoLote() {
     data: {
       labels: lotes,
       datasets: [{
-        label: 'Cantidad',
+        label: 'Cantidad de Animales',
         data: cantidades,
-        backgroundColor: lotes.map((_, i) => `hsl(${i * 40}, 60%, 55%)`),
-        borderColor: lotes.map((_, i) => `hsl(${i * 40}, 60%, 40%)`),
-        borderWidth: 1
+        backgroundColor: coloresVivos.slice(0, lotes.length),
+        borderWidth: 0,
+        borderRadius: 8
       }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true } }
+      scales: { 
+        y: { beginAtZero: true, title: { display: true, text: 'CABEZAS DE GANADO', font: {weight: 'bold'} }, ticks: { stepSize: 1, font: {weight: 'bold'} } },
+        x: { ticks: { font: {weight: 'bold', size: 13} } }
+      }
     }
   });
 }
 
-// Gráfico por Tipo
 function renderizarGraficoTipo() {
   const tipos = Object.keys(datosPorTipo);
   const cantidades = Object.values(datosPorTipo);
 
   if (tipos.length === 0) {
-    document.getElementById("graficoTipo").parentElement.innerHTML =
-      "<p style='text-align:center;color:#999'>No hay datos por tipo</p>";
+    document.getElementById("graficoTipo").parentElement.innerHTML = "<p style='text-align:center;color:#999;font-weight:bold;padding:40px;'>No hay datos de clasificación</p>";
     return;
   }
+
+  // Si hay más tipos que colores, repetimos la paleta
+  const bgColors = tipos.map((_, i) => coloresVivos[i % coloresVivos.length]);
 
   const ctx = document.getElementById("graficoTipo").getContext("2d");
   new Chart(ctx, {
@@ -261,27 +260,30 @@ function renderizarGraficoTipo() {
       labels: tipos,
       datasets: [{
         data: cantidades,
-        backgroundColor: tipos.map((_, i) => `hsl(${i * 60 + 200}, 70%, 60%)`),
-        borderWidth: 2, borderColor: '#fff'
+        backgroundColor: bgColors,
+        borderWidth: 3, 
+        borderColor: '#ffffff',
+        hoverOffset: 8
       }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+    options: { 
+      responsive: true, maintainAspectRatio: false, 
+      plugins: { 
+        legend: { position: 'right', labels: { font: {weight: 'bold', size: 13} } } 
+      } 
+    }
   });
 }
 
-// Gráfico de Histórico (MODIFICADO A 6 MESES)
 function renderizarGraficoHistorico() {
   if (datosHistorico.length === 0) {
-    document.getElementById("graficoHistorico").parentElement.innerHTML =
-      "<p style='text-align:center;color:#999'>No hay datos históricos</p>";
+    document.getElementById("graficoHistorico").parentElement.innerHTML = "<p style='text-align:center;color:#999;font-weight:bold;padding:40px;'>No hay datos históricos registrados</p>";
     return;
   }
 
-  // 1. Determinar la fecha hace 6 meses
   const fechaLimite = new Date();
   fechaLimite.setMonth(fechaLimite.getMonth() - 6);
 
-  // 2. Filtrar los últimos 6 meses
   const datosFiltrados = datosHistorico.filter(registro => {
     let fechaStr = registro.fecha || registro.Fecha || registro["Fecha/Hora"];
     if (!fechaStr) return false;
@@ -289,7 +291,6 @@ function renderizarGraficoHistorico() {
     return !isNaN(f.getTime()) && f >= fechaLimite;
   });
 
-  // 3. Ordenar cronológicamente
   datosFiltrados.sort((a, b) => {
     let fA = new Date(a.fecha || a.Fecha || a["Fecha/Hora"]);
     let fB = new Date(b.fecha || b.Fecha || b["Fecha/Hora"]);
@@ -301,17 +302,13 @@ function renderizarGraficoHistorico() {
 
   datosFiltrados.forEach(registro => {
     let fechaStr = registro.fecha || registro.Fecha || registro["Fecha/Hora"];
-    // Extraer solo la fecha (YYYY-MM-DD) si viene con hora
     fechas.push(fechaStr.split('T')[0].split(' ')[0]);
-
     let cantidad = registro.total || registro.cantidad || registro.Cantidad || registro["TOTAL GENERAL"] || 0;
     cantidades.push(parseInt(cantidad));
   });
 
-  // Verificar si hay datos numéricos válidos en esos 6 meses
   if (cantidades.length === 0 || !cantidades.some(c => !isNaN(c) && c > 0)) {
-    document.getElementById("graficoHistorico").parentElement.innerHTML =
-      "<p style='text-align:center;color:#999'>No hay datos válidos en los últimos 6 meses</p>";
+    document.getElementById("graficoHistorico").parentElement.innerHTML = "<p style='text-align:center;color:#999;font-weight:bold;padding:40px;'>No hay datos válidos en los últimos 6 meses</p>";
     return;
   }
 
@@ -321,23 +318,25 @@ function renderizarGraficoHistorico() {
     data: {
       labels: fechas,
       datasets: [{
-        label: 'Cantidad total',
+        label: 'Inventario Total',
         data: cantidades,
-        borderColor: '#2f6f4e',
-        backgroundColor: 'rgba(47, 111, 78, 0.1)',
-        borderWidth: 3,
+        borderColor: '#00b894', // Verde vivo eléctrico
+        backgroundColor: 'rgba(0, 184, 148, 0.15)',
+        borderWidth: 4,
         fill: true,
-        tension: 0.3,
-        pointRadius: 6,
-        pointBackgroundColor: '#2f6f4e'
+        tension: 0.4, // Curvatura suave 3D
+        pointRadius: 5,
+        pointBackgroundColor: '#00b894',
+        pointHoverRadius: 8,
+        pointHoverBackgroundColor: '#0984e3'
       }]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, labels: { font: { weight: 'bold', size: 14 } } } },
       scales: {
-        y: { beginAtZero: true, title: { display: true, text: 'Cantidad' } },
-        x: { title: { display: true, text: 'Fecha' }, ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 12 } }
+        y: { beginAtZero: true, title: { display: true, text: 'CANTIDAD TOTAL', font: {weight: 'bold'} }, ticks: { font: {weight: 'bold'} } },
+        x: { ticks: { font: {weight: 'bold'}, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 } }
       }
     }
   });
@@ -346,7 +345,7 @@ function renderizarGraficoHistorico() {
 function mostrarError(mensaje) {
   document.getElementById("loader").style.display = "none";
   const err = document.getElementById("error");
-  err.textContent = mensaje;
+  err.textContent = "❌ " + mensaje;
   err.style.display = "block";
 }
 </script>
