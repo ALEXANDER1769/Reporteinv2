@@ -95,7 +95,7 @@ h2, h3 { text-align: center; font-weight: 800; color: var(--azul); margin-bottom
 
     <div class="kpi-grid">
       <div class="kpi-card">
-        <div class="kpi-label">Población Actual</div>
+        <div class="kpi-label">Población Actual Total</div>
         <div class="numero-total" id="total-general">0</div>
         <div class="kpi-unit">Cabezas de Ganado</div>
       </div>
@@ -153,6 +153,7 @@ let totalGeneral = 0;
 let datosPorLote = {};
 let datosPorTipo = {};
 let datosHistorico = [];
+let datosHistoricoBufalino = []; // NUEVA VARIABLE PARA BUFALINOS
 
 document.addEventListener('DOMContentLoaded', function() {
   const params = new URLSearchParams(window.location.search);
@@ -175,13 +176,14 @@ document.addEventListener('DOMContentLoaded', function() {
   .then(data => {
     if (!data.ok) throw new Error(data.error || "Respuesta inválida del servidor");
 
-    // LECTURA ORIGINAL INTACTA
+    // LECTURA DE DATOS ACTUALIZADA
     totalGeneral = data.total || 0;
     datosPorLote = data.porLote || {};
     datosPorTipo = data.porTipo || {};
     datosHistorico = data.historico || [];
+    datosHistoricoBufalino = data.historicoBufalino || []; // LEEMOS EL HISTÓRICO BUFALINO
 
-    if (totalGeneral === 0 && datosHistorico.length === 0) {
+    if (totalGeneral === 0 && datosHistorico.length === 0 && datosHistoricoBufalino.length === 0) {
       throw new Error("No se encontraron registros de inventario");
     }
 
@@ -276,7 +278,7 @@ function renderizarGraficoTipo() {
 }
 
 function renderizarGraficoHistorico() {
-  if (datosHistorico.length === 0) {
+  if (datosHistorico.length === 0 && datosHistoricoBufalino.length === 0) {
     document.getElementById("graficoHistorico").parentElement.innerHTML = "<p style='text-align:center;color:#999;font-weight:bold;padding:40px;'>No hay datos históricos registrados</p>";
     return;
   }
@@ -284,30 +286,35 @@ function renderizarGraficoHistorico() {
   const fechaLimite = new Date();
   fechaLimite.setMonth(fechaLimite.getMonth() - 6);
 
-  const datosFiltrados = datosHistorico.filter(registro => {
-    let fechaStr = registro.fecha || registro.Fecha || registro["Fecha/Hora"];
-    if (!fechaStr) return false;
-    let f = new Date(fechaStr);
-    return !isNaN(f.getTime()) && f >= fechaLimite;
-  });
+  // Función interna para extraer y mapear fechas con sus totales
+  function procesarDatosHistoricos(arregloDatos) {
+    const mapa = {};
+    arregloDatos.forEach(registro => {
+      let fechaStr = registro.fecha || registro.Fecha || registro["Fecha/Hora"];
+      if (!fechaStr) return;
+      let f = new Date(fechaStr);
+      if (!isNaN(f.getTime()) && f >= fechaLimite) {
+        let diaAislado = fechaStr.split('T')[0].split(' ')[0];
+        let cantidad = registro.total || registro.cantidad || registro.Cantidad || registro["TOTAL GENERAL"] || 0;
+        mapa[diaAislado] = parseInt(cantidad) || 0;
+      }
+    });
+    return mapa;
+  }
 
-  datosFiltrados.sort((a, b) => {
-    let fA = new Date(a.fecha || a.Fecha || a["Fecha/Hora"]);
-    let fB = new Date(b.fecha || b.Fecha || b["Fecha/Hora"]);
-    return fA - fB;
-  });
+  // Extraemos mapas de fecha -> cantidad
+  const mapaBovinos = procesarDatosHistoricos(datosHistorico);
+  const mapaBufalinos = procesarDatosHistoricos(datosHistoricoBufalino);
 
-  const fechas = [];
-  const cantidades = [];
+  // Fusionamos todas las fechas únicas de ambos históricos y las ordenamos
+  const setFechasUnicas = new Set([...Object.keys(mapaBovinos), ...Object.keys(mapaBufalinos)]);
+  const fechasOrdenadas = Array.from(setFechasUnicas).sort((a, b) => new Date(a) - new Date(b));
 
-  datosFiltrados.forEach(registro => {
-    let fechaStr = registro.fecha || registro.Fecha || registro["Fecha/Hora"];
-    fechas.push(fechaStr.split('T')[0].split(' ')[0]);
-    let cantidad = registro.total || registro.cantidad || registro.Cantidad || registro["TOTAL GENERAL"] || 0;
-    cantidades.push(parseInt(cantidad));
-  });
+  // Generamos los arreglos alineados para el gráfico
+  const cantidadesBovinos = fechasOrdenadas.map(f => mapaBovinos[f] || 0);
+  const cantidadesBufalinos = fechasOrdenadas.map(f => mapaBufalinos[f] || 0);
 
-  if (cantidades.length === 0 || !cantidades.some(c => !isNaN(c) && c > 0)) {
+  if (cantidadesBovinos.length === 0 && cantidadesBufalinos.length === 0) {
     document.getElementById("graficoHistorico").parentElement.innerHTML = "<p style='text-align:center;color:#999;font-weight:bold;padding:40px;'>No hay datos válidos en los últimos 6 meses</p>";
     return;
   }
@@ -316,24 +323,39 @@ function renderizarGraficoHistorico() {
   new Chart(ctx, {
     type: 'line',
     data: {
-      labels: fechas,
-      datasets: [{
-        label: 'Inventario Total',
-        data: cantidades,
-        borderColor: '#00b894', // Verde vivo eléctrico
-        backgroundColor: 'rgba(0, 184, 148, 0.15)',
-        borderWidth: 4,
-        fill: true,
-        tension: 0.4, // Curvatura suave 3D
-        pointRadius: 5,
-        pointBackgroundColor: '#00b894',
-        pointHoverRadius: 8,
-        pointHoverBackgroundColor: '#0984e3'
-      }]
+      labels: fechasOrdenadas,
+      datasets: [
+        {
+          label: 'Bovino / Equino',
+          data: cantidadesBovinos,
+          borderColor: '#00b894', // Verde vivo eléctrico
+          backgroundColor: 'rgba(0, 184, 148, 0.15)',
+          borderWidth: 4,
+          fill: true,
+          tension: 0.4, // Curvatura suave 3D
+          pointRadius: 5,
+          pointBackgroundColor: '#00b894',
+          pointHoverRadius: 8,
+          pointHoverBackgroundColor: '#0984e3'
+        },
+        {
+          label: 'Bufalino',
+          data: cantidadesBufalinos,
+          borderColor: '#e17055', // Color tierra/anaranjado para distinguir bufalinos
+          backgroundColor: 'rgba(225, 112, 85, 0.15)',
+          borderWidth: 4,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 5,
+          pointBackgroundColor: '#e17055',
+          pointHoverRadius: 8,
+          pointHoverBackgroundColor: '#d63031'
+        }
+      ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: true, labels: { font: { weight: 'bold', size: 14 } } } },
+      plugins: { legend: { display: true, position: 'top', labels: { font: { weight: 'bold', size: 14 } } } },
       scales: {
         y: { beginAtZero: true, title: { display: true, text: 'CANTIDAD TOTAL', font: {weight: 'bold'} }, ticks: { font: {weight: 'bold'} } },
         x: { ticks: { font: {weight: 'bold'}, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 } }
