@@ -122,6 +122,37 @@ h2, h3 { text-align: center; font-weight: 800; color: var(--azul); margin-bottom
       </div>
     </div>
 
+    <div class="card" style="border-top-color: var(--tierra);">
+      <div class="card-title-container">
+        <div class="card-title" style="color: var(--tierra); border-color: var(--rojo-claro);">📋 Control de Inventarios por Lote</div>
+      </div>
+      <p style="text-align:center; font-weight:bold; color:var(--gris); margin-bottom:15px;">Auditoría física de campo: Identifica faltantes y sobrantes al instante.</p>
+
+      <div style="text-align:center; margin-bottom: 20px;">
+        <label style="font-weight:bold; color:var(--azul); display:block; margin-bottom:8px;">Selecciona el lote a auditar:</label>
+        <select id="selectorLoteAuditoria" class="btn" style="border: 2px solid var(--tierra); background: white; color: var(--tierra); font-size: 16px; padding: 10px; width: 100%; max-width: 400px; cursor: pointer; text-align: center;" onchange="actualizarTablaAuditoria()">
+          <option value="">Cargando lotes...</option>
+        </select>
+      </div>
+
+      <div id="alerta-caducidad" style="display:none; padding:15px; background:#fadbd8; border-left:5px solid var(--rojo); color:var(--rojo); margin-bottom:15px; border-radius:5px; font-weight:bold; text-align:center;"></div>
+
+      <div style="overflow-x:auto; border: 1px solid var(--borde); border-radius: 8px;">
+        <table style="width:100%; border-collapse:collapse; font-size:14px; text-align:left;">
+          <thead>
+            <tr style="background:var(--fondo); border-bottom:2px solid var(--borde);">
+              <th style="padding:12px; border-right:1px solid var(--borde); color:var(--azul);">ID Teórico (Esperado)</th>
+              <th style="padding:12px; border-right:1px solid var(--borde); color:var(--azul);">ID Encontrado</th>
+              <th style="padding:12px; border-right:1px solid var(--borde); color:var(--rojo);">Faltantes ❌</th>
+              <th style="padding:12px; color:var(--tierra);">Sobrantes ⚠️</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-body-auditoria">
+            <tr><td colspan="4" style="text-align:center; padding:20px; color:var(--gris); font-weight:bold;">Seleccione un lote en el menú superior para ver la conciliación</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
     <button class="btn-volver" id="btnVolver">✕ Cerrar reporte y volver al panel principal</button>
   </div>
 
@@ -153,7 +184,8 @@ let totalGeneral = 0;
 let datosPorLote = {};
 let datosPorTipo = {};
 let datosHistorico = [];
-let datosHistoricoBufalino = []; // NUEVA VARIABLE PARA BUFALINOS
+let datosHistoricoBufalino = []; 
+let conciliacionGlobal = {}; // NUEVA VARIABLE PARA AUDITORÍA
 
 document.addEventListener('DOMContentLoaded', function() {
   const params = new URLSearchParams(window.location.search);
@@ -181,7 +213,8 @@ document.addEventListener('DOMContentLoaded', function() {
     datosPorLote = data.porLote || {};
     datosPorTipo = data.porTipo || {};
     datosHistorico = data.historico || [];
-    datosHistoricoBufalino = data.historicoBufalino || []; // LEEMOS EL HISTÓRICO BUFALINO
+    datosHistoricoBufalino = data.historicoBufalino || [];
+    conciliacionGlobal = data.conciliacion || {}; // CAPTURAMOS LOS DATOS DE CONCILIACIÓN
 
     if (totalGeneral === 0 && datosHistorico.length === 0 && datosHistoricoBufalino.length === 0) {
       throw new Error("No se encontraron registros de inventario");
@@ -192,6 +225,9 @@ document.addEventListener('DOMContentLoaded', function() {
     renderizarGraficoLote();
     renderizarGraficoTipo();
     renderizarGraficoHistorico();
+    
+    // Iniciar Selector de Lotes
+    inicializarSelectorAuditoria();
 
     // Mostrar contenido
     document.getElementById("loader").style.display = "none";
@@ -209,6 +245,83 @@ document.addEventListener('DOMContentLoaded', function() {
     mostrarError("Error al cargar los datos: " + err.message);
   });
 });
+
+// ==========================================
+// 🔥 LÓGICA DE AUDITORÍA FÍSICA DE LOTES
+// ==========================================
+function inicializarSelectorAuditoria() {
+  const sel = document.getElementById("selectorLoteAuditoria");
+  sel.innerHTML = '<option value="">-- Selecciona el lote a auditar --</option>';
+  
+  let hayLotes = false;
+  Object.keys(conciliacionGlobal).forEach(lote => {
+    hayLotes = true;
+    let opt = document.createElement("option");
+    opt.value = lote; opt.textContent = lote;
+    sel.appendChild(opt);
+  });
+
+  if (!hayLotes) {
+    sel.innerHTML = '<option value="">No hay datos de auditoría registrados</option>';
+    sel.disabled = true;
+  }
+}
+
+function actualizarTablaAuditoria() {
+  const lote = document.getElementById("selectorLoteAuditoria").value;
+  const tbody = document.getElementById("tabla-body-auditoria");
+  const alertDiv = document.getElementById("alerta-caducidad");
+  
+  if(!lote || !conciliacionGlobal[lote]) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--gris); font-weight:bold;">Seleccione un lote en el menú superior para ver la conciliación</td></tr>';
+    alertDiv.style.display = 'none';
+    return;
+  }
+
+  const info = conciliacionGlobal[lote];
+
+  // Cálculo de caducidad
+  let fechaInv = new Date(info.ultimaFecha);
+  if(isNaN(fechaInv.getTime())) {
+    alertDiv.style.display = 'block';
+    alertDiv.innerHTML = `⚠️ ADVERTENCIA: Este inventario no tiene un formato de fecha válido ("INVENTARIO DEL: AAAA-MM-DD").`;
+  } else {
+    const diffDias = Math.ceil((new Date() - fechaInv) / (1000 * 60 * 60 * 24));
+    if(diffDias > 30) {
+      alertDiv.style.display = 'block';
+      alertDiv.innerHTML = `🚨 ALERTA CRÍTICA: Hace <b>${diffDias} días</b> del último conteo (${info.ultimaFecha}). Existe alto riesgo de mortalidad o fuga no registrada. Se exige reconteo físico.`;
+    } else {
+      alertDiv.style.display = 'none';
+    }
+  }
+
+  // Arrays de datos
+  const encontrados = info.encontrados || [];
+  const faltantes = info.faltantes || [];
+  const sobrantes = info.sobrantes || [];
+  const teoricos = [...encontrados, ...faltantes];
+  
+  const maxFilas = Math.max(teoricos.length, encontrados.length, faltantes.length, sobrantes.length);
+  tbody.innerHTML = '';
+
+  if(maxFilas === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--gris); font-weight:bold;">No hay IDs registrados para este lote.</td></tr>';
+    return;
+  }
+
+  for (let i = 0; i < maxFilas; i++) {
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = "1px solid var(--borde)";
+    tr.innerHTML = `
+      <td style="padding:10px; border-right:1px solid var(--borde);">${teoricos[i] || '-'}</td>
+      <td style="padding:10px; border-right:1px solid var(--borde);">${encontrados[i] || '-'}</td>
+      <td style="padding:10px; border-right:1px solid var(--borde); color:var(--rojo); font-weight:bold;">${faltantes[i] || '-'}</td>
+      <td style="padding:10px; color:var(--tierra); font-weight:bold;">${sobrantes[i] || '-'}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+// ==========================================
 
 function renderizarGraficoLote() {
   const lotes = Object.keys(datosPorLote);
@@ -252,7 +365,6 @@ function renderizarGraficoTipo() {
     return;
   }
 
-  // Si hay más tipos que colores, repetimos la paleta
   const bgColors = tipos.map((_, i) => coloresVivos[i % coloresVivos.length]);
 
   const ctx = document.getElementById("graficoTipo").getContext("2d");
@@ -286,7 +398,6 @@ function renderizarGraficoHistorico() {
   const fechaLimite = new Date();
   fechaLimite.setMonth(fechaLimite.getMonth() - 6);
 
-  // Función interna para extraer y mapear fechas con sus totales
   function procesarDatosHistoricos(arregloDatos) {
     const mapa = {};
     arregloDatos.forEach(registro => {
@@ -302,15 +413,12 @@ function renderizarGraficoHistorico() {
     return mapa;
   }
 
-  // Extraemos mapas de fecha -> cantidad
   const mapaBovinos = procesarDatosHistoricos(datosHistorico);
   const mapaBufalinos = procesarDatosHistoricos(datosHistoricoBufalino);
 
-  // Fusionamos todas las fechas únicas de ambos históricos y las ordenamos
   const setFechasUnicas = new Set([...Object.keys(mapaBovinos), ...Object.keys(mapaBufalinos)]);
   const fechasOrdenadas = Array.from(setFechasUnicas).sort((a, b) => new Date(a) - new Date(b));
 
-  // Generamos los arreglos alineados para el gráfico
   const cantidadesBovinos = fechasOrdenadas.map(f => mapaBovinos[f] || 0);
   const cantidadesBufalinos = fechasOrdenadas.map(f => mapaBufalinos[f] || 0);
 
@@ -328,11 +436,11 @@ function renderizarGraficoHistorico() {
         {
           label: 'Bovino / Equino',
           data: cantidadesBovinos,
-          borderColor: '#00b894', // Verde vivo eléctrico
+          borderColor: '#00b894',
           backgroundColor: 'rgba(0, 184, 148, 0.15)',
           borderWidth: 4,
           fill: true,
-          tension: 0.4, // Curvatura suave 3D
+          tension: 0.4,
           pointRadius: 5,
           pointBackgroundColor: '#00b894',
           pointHoverRadius: 8,
@@ -341,7 +449,7 @@ function renderizarGraficoHistorico() {
         {
           label: 'Bufalino',
           data: cantidadesBufalinos,
-          borderColor: '#e17055', // Color tierra/anaranjado para distinguir bufalinos
+          borderColor: '#e17055',
           backgroundColor: 'rgba(225, 112, 85, 0.15)',
           borderWidth: 4,
           fill: true,
