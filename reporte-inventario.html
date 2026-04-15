@@ -128,8 +128,12 @@ h2, h3 { text-align: center; font-weight: 800; color: var(--azul); margin-bottom
       </div>
       <p style="text-align:center; font-weight:bold; color:var(--gris); margin-bottom:15px;">Auditoría física de campo: Identifica faltantes y sobrantes al instante.</p>
 
+      <div class="chart-container" id="contenedorGraficoAuditoria" style="height: 250px; display: none; margin-bottom: 30px; border-bottom: 2px dashed var(--borde); padding-bottom: 20px;">
+        <canvas id="graficoAuditoria"></canvas>
+      </div>
+
       <div style="text-align:center; margin-bottom: 20px;">
-        <label style="font-weight:bold; color:var(--azul); display:block; margin-bottom:8px;">Selecciona el lote a auditar:</label>
+        <label style="font-weight:bold; color:var(--azul); display:block; margin-bottom:8px;">Selecciona el lote a auditar en detalle:</label>
         <select id="selectorLoteAuditoria" class="btn" style="border: 2px solid var(--tierra); background: white; color: var(--tierra); font-size: 16px; padding: 10px; width: 100%; max-width: 400px; cursor: pointer; text-align: center;" onchange="actualizarTablaAuditoria()">
           <option value="">Cargando lotes...</option>
         </select>
@@ -153,6 +157,7 @@ h2, h3 { text-align: center; font-weight: 800; color: var(--azul); margin-bottom
         </table>
       </div>
     </div>
+    
     <button class="btn-volver" id="btnVolver">✕ Cerrar reporte y volver al panel principal</button>
   </div>
 
@@ -214,7 +219,7 @@ document.addEventListener('DOMContentLoaded', function() {
     datosPorTipo = data.porTipo || {};
     datosHistorico = data.historico || [];
     datosHistoricoBufalino = data.historicoBufalino || [];
-    conciliacionGlobal = data.conciliacion || {}; // CAPTURAMOS LOS DATOS DE CONCILIACIÓN
+    conciliacionGlobal = data.conciliacion || {}; 
 
     if (totalGeneral === 0 && datosHistorico.length === 0 && datosHistoricoBufalino.length === 0) {
       throw new Error("No se encontraron registros de inventario");
@@ -225,6 +230,9 @@ document.addEventListener('DOMContentLoaded', function() {
     renderizarGraficoLote();
     renderizarGraficoTipo();
     renderizarGraficoHistorico();
+    
+    // 🔥 Renderizar el nuevo gráfico de barras horizontales
+    renderizarGraficoAuditoria();
     
     // Iniciar Selector de Lotes
     inicializarSelectorAuditoria();
@@ -247,8 +255,53 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ==========================================
-// 🔥 LÓGICA DE AUDITORÍA FÍSICA DE LOTES
+// 🔥 LÓGICA DE AUDITORÍA FÍSICA Y GRÁFICO
 // ==========================================
+
+function renderizarGraficoAuditoria() {
+  const lotes = Object.keys(conciliacionGlobal);
+  if(lotes.length === 0) return; // Si no hay auditorías, no dibuja el gráfico
+
+  document.getElementById("contenedorGraficoAuditoria").style.display = "block";
+
+  const faltantes = lotes.map(l => (conciliacionGlobal[l].faltantes || []).length);
+  const sobrantes = lotes.map(l => (conciliacionGlobal[l].sobrantes || []).length);
+
+  const ctx = document.getElementById("graficoAuditoria").getContext("2d");
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: lotes,
+      datasets: [
+        { 
+          label: 'Faltantes ❌', 
+          data: faltantes, 
+          backgroundColor: '#d63031', // Rojo
+          borderRadius: 4 
+        },
+        { 
+          label: 'Sobrantes ⚠️', 
+          data: sobrantes, 
+          backgroundColor: '#e17055', // Tierra/Naranja
+          borderRadius: 4 
+        }
+      ]
+    },
+    options: {
+      indexAxis: 'y', // 🔥 Esto lo convierte en horizontal
+      responsive: true, 
+      maintainAspectRatio: false,
+      plugins: { 
+        legend: { position: 'bottom', labels: { font: { weight: 'bold', size: 14 } } } 
+      },
+      scales: {
+        x: { beginAtZero: true, ticks: { stepSize: 1, font: { weight: 'bold' } } },
+        y: { ticks: { font: { weight: 'bold' } } }
+      }
+    }
+  });
+}
+
 function inicializarSelectorAuditoria() {
   const sel = document.getElementById("selectorLoteAuditoria");
   sel.innerHTML = '<option value="">-- Selecciona el lote a auditar --</option>';
