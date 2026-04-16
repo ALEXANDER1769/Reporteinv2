@@ -18,7 +18,7 @@
   --gris: #636e72; 
   --gris-claro: #dfe6e9;
   --morado: #6c5ce7; 
-  --amarillo: #fdcb6e;
+  --amarillo: #f1c40f; /* AMARILLO FUERTE Y LEGIBLE */
   --fondo: #f4f6f8; 
   --blanco: #ffffff; 
   --borde: #dfe6e9;
@@ -126,9 +126,9 @@ h2, h3 { text-align: center; font-weight: 800; color: var(--azul); margin-bottom
       <div class="card-title-container">
         <div class="card-title" style="color: var(--tierra); border-color: var(--rojo-claro);">📋 Control de Inventarios por Lote</div>
       </div>
-      <p style="text-align:center; font-weight:bold; color:var(--gris); margin-bottom:15px;">Auditoría física de campo: Identifica faltantes y sobrantes al instante.</p>
+      <p style="text-align:center; font-weight:bold; color:var(--gris); margin-bottom:15px;">Auditoría física de campo: Identifica animales encontrados, faltantes y sobrantes.</p>
 
-      <div class="chart-container" id="contenedorGraficoAuditoria" style="height: 250px; display: none; margin-bottom: 30px; border-bottom: 2px dashed var(--borde); padding-bottom: 20px;">
+      <div class="chart-container" id="contenedorGraficoAuditoria" style="height: 300px; display: none; margin-bottom: 30px; border-bottom: 2px dashed var(--borde); padding-bottom: 20px;">
         <canvas id="graficoAuditoria"></canvas>
       </div>
 
@@ -139,16 +139,16 @@ h2, h3 { text-align: center; font-weight: 800; color: var(--azul); margin-bottom
         </select>
       </div>
 
-      <div id="alerta-caducidad" style="display:none; padding:15px; background:#fadbd8; border-left:5px solid var(--rojo); color:var(--rojo); margin-bottom:15px; border-radius:5px; font-weight:bold; text-align:center;"></div>
+      <div id="alerta-caducidad" style="display:none; padding:15px; border-left:5px solid; margin-bottom:15px; border-radius:5px; font-weight:bold; text-align:center;"></div>
 
       <div style="overflow-x:auto; border: 1px solid var(--borde); border-radius: 8px;">
         <table style="width:100%; border-collapse:collapse; font-size:14px; text-align:left;">
           <thead>
             <tr style="background:var(--fondo); border-bottom:2px solid var(--borde);">
               <th style="padding:12px; border-right:1px solid var(--borde); color:var(--azul);">ID Teórico (Esperado)</th>
-              <th style="padding:12px; border-right:1px solid var(--borde); color:var(--azul);">ID Encontrado</th>
+              <th style="padding:12px; border-right:1px solid var(--borde); color:var(--verde);">ID Encontrado ✅</th>
               <th style="padding:12px; border-right:1px solid var(--borde); color:var(--rojo);">Faltantes ❌</th>
-              <th style="padding:12px; color:var(--tierra);">Sobrantes ⚠️</th>
+              <th style="padding:12px; color:var(--amarillo);">Sobrantes ⚠️</th>
             </tr>
           </thead>
           <tbody id="tabla-body-auditoria">
@@ -190,7 +190,7 @@ let datosPorLote = {};
 let datosPorTipo = {};
 let datosHistorico = [];
 let datosHistoricoBufalino = []; 
-let conciliacionGlobal = {}; // NUEVA VARIABLE PARA AUDITORÍA
+let conciliacionGlobal = {}; 
 
 document.addEventListener('DOMContentLoaded', function() {
   const params = new URLSearchParams(window.location.search);
@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', function() {
   .then(data => {
     if (!data.ok) throw new Error(data.error || "Respuesta inválida del servidor");
 
-    // LECTURA DE DATOS ACTUALIZADA
+    // LECTURA DE DATOS
     totalGeneral = data.total || 0;
     datosPorLote = data.porLote || {};
     datosPorTipo = data.porTipo || {};
@@ -230,8 +230,6 @@ document.addEventListener('DOMContentLoaded', function() {
     renderizarGraficoLote();
     renderizarGraficoTipo();
     renderizarGraficoHistorico();
-    
-    // 🔥 Renderizar el nuevo gráfico de barras horizontales
     renderizarGraficoAuditoria();
     
     // Iniciar Selector de Lotes
@@ -259,20 +257,27 @@ document.addEventListener('DOMContentLoaded', function() {
 // ==========================================
 
 function renderizarGraficoAuditoria() {
-  const lotes = Object.keys(conciliacionGlobal);
-  if(lotes.length === 0) return; // Si no hay auditorías, no dibuja el gráfico
+  const lotesConAuditoria = Object.keys(conciliacionGlobal);
+  if(lotesConAuditoria.length === 0) return;
 
   document.getElementById("contenedorGraficoAuditoria").style.display = "block";
 
-  const faltantes = lotes.map(l => (conciliacionGlobal[l].faltantes || []).length);
-  const sobrantes = lotes.map(l => (conciliacionGlobal[l].sobrantes || []).length);
+  const encontrados = lotesConAuditoria.map(l => (conciliacionGlobal[l].encontrados || []).length);
+  const faltantes = lotesConAuditoria.map(l => (conciliacionGlobal[l].faltantes || []).length);
+  const sobrantes = lotesConAuditoria.map(l => (conciliacionGlobal[l].sobrantes || []).length);
 
   const ctx = document.getElementById("graficoAuditoria").getContext("2d");
   new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: lotes,
+      labels: lotesConAuditoria,
       datasets: [
+        { 
+          label: 'Encontrados ✅', 
+          data: encontrados, 
+          backgroundColor: '#00b894', // Verde
+          borderRadius: 4 
+        },
         { 
           label: 'Faltantes ❌', 
           data: faltantes, 
@@ -282,17 +287,17 @@ function renderizarGraficoAuditoria() {
         { 
           label: 'Sobrantes ⚠️', 
           data: sobrantes, 
-          backgroundColor: '#e17055', // Tierra/Naranja
+          backgroundColor: '#f1c40f', // 🔥 Amarillo Fuerte
           borderRadius: 4 
         }
       ]
     },
     options: {
-      indexAxis: 'y', // 🔥 Esto lo convierte en horizontal
+      indexAxis: 'y', 
       responsive: true, 
       maintainAspectRatio: false,
       plugins: { 
-        legend: { position: 'bottom', labels: { font: { weight: 'bold', size: 14 } } } 
+        legend: { position: 'bottom', labels: { font: { weight: 'bold', size: 13 } } } 
       },
       scales: {
         x: { beginAtZero: true, ticks: { stepSize: 1, font: { weight: 'bold' } } },
@@ -306,18 +311,19 @@ function inicializarSelectorAuditoria() {
   const sel = document.getElementById("selectorLoteAuditoria");
   sel.innerHTML = '<option value="">-- Selecciona el lote a auditar --</option>';
   
-  let hayLotes = false;
-  Object.keys(conciliacionGlobal).forEach(lote => {
-    hayLotes = true;
+  const todosLosLotes = Object.keys(datosPorLote);
+  
+  if (todosLosLotes.length === 0) {
+    sel.innerHTML = '<option value="">No hay lotes registrados en el sistema</option>';
+    sel.disabled = true;
+    return;
+  }
+
+  todosLosLotes.forEach(lote => {
     let opt = document.createElement("option");
     opt.value = lote; opt.textContent = lote;
     sel.appendChild(opt);
   });
-
-  if (!hayLotes) {
-    sel.innerHTML = '<option value="">No hay datos de auditoría registrados</option>';
-    sel.disabled = true;
-  }
 }
 
 function actualizarTablaAuditoria() {
@@ -325,7 +331,7 @@ function actualizarTablaAuditoria() {
   const tbody = document.getElementById("tabla-body-auditoria");
   const alertDiv = document.getElementById("alerta-caducidad");
   
-  if(!lote || !conciliacionGlobal[lote]) {
+  if(!lote) {
     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--gris); font-weight:bold;">Seleccione un lote en el menú superior para ver la conciliación</td></tr>';
     alertDiv.style.display = 'none';
     return;
@@ -333,22 +339,43 @@ function actualizarTablaAuditoria() {
 
   const info = conciliacionGlobal[lote];
 
-  // Cálculo de caducidad
+  if(!info) {
+    alertDiv.style.display = 'block';
+    alertDiv.style.background = '#fff3cd'; 
+    alertDiv.style.color = '#856404';
+    alertDiv.style.borderColor = '#ffeeba';
+    alertDiv.innerHTML = `⚠️ NO HAY DATOS DE AUDITORÍA: El lote <b>${lote}</b> no cuenta con un registro físico en la hoja 'Inventario'.`;
+    
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; font-weight:bold; color:var(--gris);">Debe ir al campo y auditar este lote para visualizar la tabla.</td></tr>`;
+    return;
+  }
+
   let fechaInv = new Date(info.ultimaFecha);
   if(isNaN(fechaInv.getTime())) {
     alertDiv.style.display = 'block';
-    alertDiv.innerHTML = `⚠️ ADVERTENCIA: Este inventario no tiene un formato de fecha válido ("INVENTARIO DEL: AAAA-MM-DD").`;
-  } else {
-    const diffDias = Math.ceil((new Date() - fechaInv) / (1000 * 60 * 60 * 24));
-    if(diffDias > 30) {
-      alertDiv.style.display = 'block';
-      alertDiv.innerHTML = `🚨 ALERTA CRÍTICA: Hace <b>${diffDias} días</b> del último conteo (${info.ultimaFecha}). Existe alto riesgo de mortalidad o fuga no registrada. Se exige reconteo físico.`;
-    } else {
-      alertDiv.style.display = 'none';
-    }
+    alertDiv.style.background = '#fadbd8';
+    alertDiv.style.color = '#c0392b';
+    alertDiv.style.borderColor = '#e74c3c';
+    alertDiv.innerHTML = `⚠️ ERROR DE FORMATO: La fecha de auditoría no es válida ("INVENTARIO DEL: AAAA-MM-DD").`;
+    tbody.innerHTML = '';
+    return;
+  } 
+  
+  const diffDias = Math.ceil((new Date() - fechaInv) / (1000 * 60 * 60 * 24));
+  
+  if(diffDias > 30) {
+    alertDiv.style.display = 'block';
+    alertDiv.style.background = '#fadbd8';
+    alertDiv.style.color = '#c0392b';
+    alertDiv.style.borderColor = '#e74c3c';
+    alertDiv.innerHTML = `🚨 AUDITORÍA CADUCADA: Hace <b>${diffDias} días</b> del último conteo (${info.ultimaFecha}) para el lote <b>${lote}</b>. Se exige reconteo físico inmediato.`;
+    
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; font-weight:bold; color:var(--rojo);">Bloqueo de seguridad: Los datos tienen más de 30 días de antigüedad y no son confiables. Actualice el Excel.</td></tr>`;
+    return;
   }
 
-  // Arrays de datos
+  alertDiv.style.display = 'none';
+
   const encontrados = info.encontrados || [];
   const faltantes = info.faltantes || [];
   const sobrantes = info.sobrantes || [];
@@ -358,7 +385,7 @@ function actualizarTablaAuditoria() {
   tbody.innerHTML = '';
 
   if(maxFilas === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--gris); font-weight:bold;">No hay IDs registrados para este lote.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--gris); font-weight:bold;">Auditoría reciente, pero no se registraron IDs para este lote.</td></tr>';
     return;
   }
 
@@ -366,10 +393,10 @@ function actualizarTablaAuditoria() {
     const tr = document.createElement('tr');
     tr.style.borderBottom = "1px solid var(--borde)";
     tr.innerHTML = `
-      <td style="padding:10px; border-right:1px solid var(--borde);">${teoricos[i] || '-'}</td>
-      <td style="padding:10px; border-right:1px solid var(--borde);">${encontrados[i] || '-'}</td>
+      <td style="padding:10px; border-right:1px solid var(--borde); font-weight:600;">${teoricos[i] || '-'}</td>
+      <td style="padding:10px; border-right:1px solid var(--borde); color:var(--verde); font-weight:bold;">${encontrados[i] || '-'}</td>
       <td style="padding:10px; border-right:1px solid var(--borde); color:var(--rojo); font-weight:bold;">${faltantes[i] || '-'}</td>
-      <td style="padding:10px; color:var(--tierra); font-weight:bold;">${sobrantes[i] || '-'}</td>
+      <td style="padding:10px; color:var(--amarillo); font-weight:bold;">${sobrantes[i] || '-'}</td>
     `;
     tbody.appendChild(tr);
   }
