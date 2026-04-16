@@ -18,7 +18,7 @@
   --gris: #636e72; 
   --gris-claro: #dfe6e9;
   --morado: #6c5ce7; 
-  --amarillo: #f1c40f; /* AMARILLO FUERTE Y LEGIBLE */
+  --amarillo: #f1c40f; 
   --fondo: #f4f6f8; 
   --blanco: #ffffff; 
   --borde: #dfe6e9;
@@ -139,7 +139,7 @@ h2, h3 { text-align: center; font-weight: 800; color: var(--azul); margin-bottom
         </select>
       </div>
 
-      <div id="alerta-caducidad" style="display:none; padding:15px; border-left:5px solid; margin-bottom:15px; border-radius:5px; font-weight:bold; text-align:center;"></div>
+      <div id="alerta-caducidad" style="display:none; padding:15px; border-left:5px solid; margin-bottom:15px; border-radius:5px; font-weight:bold; text-align:center; font-size: 15px;"></div>
 
       <div style="overflow-x:auto; border: 1px solid var(--borde); border-radius: 8px;">
         <table style="width:100%; border-collapse:collapse; font-size:14px; text-align:left;">
@@ -182,7 +182,6 @@ const pluginSombra3D = {
 };
 Chart.register(pluginSombra3D);
 
-// Paleta de colores vivos global para gráficos
 const coloresVivos = ['#0984e3', '#00b894', '#fdcb6e', '#6c5ce7', '#e17055', '#d63031', '#00cec9', '#e84393', '#2d3436', '#f1c40f'];
 
 let totalGeneral = 0;
@@ -191,6 +190,15 @@ let datosPorTipo = {};
 let datosHistorico = [];
 let datosHistoricoBufalino = []; 
 let conciliacionGlobal = {}; 
+
+// 🔥 FUNCIÓN LIMPIADORA: Elimina IDs fantasmas, vacíos o erróneos enviados por Apps Script
+function limpiarIDs(arr) {
+  if (!arr) return [];
+  return arr.filter(id => {
+    const val = String(id).trim();
+    return val !== "" && val !== "()" && val !== "-" && val !== "undefined" && val !== "null";
+  });
+}
 
 document.addEventListener('DOMContentLoaded', function() {
   const params = new URLSearchParams(window.location.search);
@@ -213,7 +221,6 @@ document.addEventListener('DOMContentLoaded', function() {
   .then(data => {
     if (!data.ok) throw new Error(data.error || "Respuesta inválida del servidor");
 
-    // LECTURA DE DATOS
     totalGeneral = data.total || 0;
     datosPorLote = data.porLote || {};
     datosPorTipo = data.porTipo || {};
@@ -225,17 +232,14 @@ document.addEventListener('DOMContentLoaded', function() {
       throw new Error("No se encontraron registros de inventario");
     }
 
-    // Renderizar gráficos y números
     document.getElementById("total-general").textContent = totalGeneral.toLocaleString();
     renderizarGraficoLote();
     renderizarGraficoTipo();
     renderizarGraficoHistorico();
     renderizarGraficoAuditoria();
     
-    // Iniciar Selector de Lotes
     inicializarSelectorAuditoria();
 
-    // Mostrar contenido
     document.getElementById("loader").style.display = "none";
     document.getElementById("contenido").style.display = "block";
 
@@ -262,9 +266,10 @@ function renderizarGraficoAuditoria() {
 
   document.getElementById("contenedorGraficoAuditoria").style.display = "block";
 
-  const encontrados = lotesConAuditoria.map(l => (conciliacionGlobal[l].encontrados || []).length);
-  const faltantes = lotesConAuditoria.map(l => (conciliacionGlobal[l].faltantes || []).length);
-  const sobrantes = lotesConAuditoria.map(l => (conciliacionGlobal[l].sobrantes || []).length);
+  // Se aplica la limpieza para evitar que barras falsas sumen +1
+  const encontrados = lotesConAuditoria.map(l => limpiarIDs(conciliacionGlobal[l].encontrados).length);
+  const faltantes = lotesConAuditoria.map(l => limpiarIDs(conciliacionGlobal[l].faltantes).length);
+  const sobrantes = lotesConAuditoria.map(l => limpiarIDs(conciliacionGlobal[l].sobrantes).length);
 
   const ctx = document.getElementById("graficoAuditoria").getContext("2d");
   new Chart(ctx, {
@@ -272,33 +277,16 @@ function renderizarGraficoAuditoria() {
     data: {
       labels: lotesConAuditoria,
       datasets: [
-        { 
-          label: 'Encontrados ✅', 
-          data: encontrados, 
-          backgroundColor: '#00b894', // Verde
-          borderRadius: 4 
-        },
-        { 
-          label: 'Faltantes ❌', 
-          data: faltantes, 
-          backgroundColor: '#d63031', // Rojo
-          borderRadius: 4 
-        },
-        { 
-          label: 'Sobrantes ⚠️', 
-          data: sobrantes, 
-          backgroundColor: '#f1c40f', // 🔥 Amarillo Fuerte
-          borderRadius: 4 
-        }
+        { label: 'Encontrados ✅', data: encontrados, backgroundColor: '#00b894', borderRadius: 4 },
+        { label: 'Faltantes ❌', data: faltantes, backgroundColor: '#d63031', borderRadius: 4 },
+        { label: 'Sobrantes ⚠️', data: sobrantes, backgroundColor: '#f1c40f', borderRadius: 4 }
       ]
     },
     options: {
       indexAxis: 'y', 
       responsive: true, 
       maintainAspectRatio: false,
-      plugins: { 
-        legend: { position: 'bottom', labels: { font: { weight: 'bold', size: 13 } } } 
-      },
+      plugins: { legend: { position: 'bottom', labels: { font: { weight: 'bold', size: 13 } } } },
       scales: {
         x: { beginAtZero: true, ticks: { stepSize: 1, font: { weight: 'bold' } } },
         y: { ticks: { font: { weight: 'bold' } } }
@@ -338,47 +326,42 @@ function actualizarTablaAuditoria() {
   }
 
   const info = conciliacionGlobal[lote];
+  let mostrarBloqueo = false;
 
-  if(!info) {
-    alertDiv.style.display = 'block';
-    alertDiv.style.background = '#fff3cd'; 
-    alertDiv.style.color = '#856404';
-    alertDiv.style.borderColor = '#ffeeba';
-    alertDiv.innerHTML = `⚠️ NO HAY DATOS DE AUDITORÍA: El lote <b>${lote}</b> no cuenta con un registro físico en la hoja 'Inventario'.`;
-    
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; font-weight:bold; color:var(--gris);">Debe ir al campo y auditar este lote para visualizar la tabla.</td></tr>`;
-    return;
+  // Lógica unificada para determinar si el inventario no existe o caducó
+  if (!info) {
+    mostrarBloqueo = true;
+  } else {
+    let fechaInv = new Date(info.ultimaFecha);
+    if (isNaN(fechaInv.getTime())) {
+      mostrarBloqueo = true;
+    } else {
+      const diffDias = Math.ceil((new Date() - fechaInv) / (1000 * 60 * 60 * 24));
+      if (diffDias > 30) {
+        mostrarBloqueo = true;
+      }
+    }
   }
 
-  let fechaInv = new Date(info.ultimaFecha);
-  if(isNaN(fechaInv.getTime())) {
+  // Si no hay datos, formato inválido o pasaron 30 días, muestra la alerta solicitada
+  if (mostrarBloqueo) {
     alertDiv.style.display = 'block';
     alertDiv.style.background = '#fadbd8';
     alertDiv.style.color = '#c0392b';
     alertDiv.style.borderColor = '#e74c3c';
-    alertDiv.innerHTML = `⚠️ ERROR DE FORMATO: La fecha de auditoría no es válida ("INVENTARIO DEL: AAAA-MM-DD").`;
-    tbody.innerHTML = '';
-    return;
-  } 
-  
-  const diffDias = Math.ceil((new Date() - fechaInv) / (1000 * 60 * 60 * 24));
-  
-  if(diffDias > 30) {
-    alertDiv.style.display = 'block';
-    alertDiv.style.background = '#fadbd8';
-    alertDiv.style.color = '#c0392b';
-    alertDiv.style.borderColor = '#e74c3c';
-    alertDiv.innerHTML = `🚨 AUDITORÍA CADUCADA: Hace <b>${diffDias} días</b> del último conteo (${info.ultimaFecha}) para el lote <b>${lote}</b>. Se exige reconteo físico inmediato.`;
+    alertDiv.innerHTML = `🚨 <b>Inventario con mas de 30 dias de antiguedad o inexistente. Actualice o realice el inventario del lote.</b>`;
     
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; font-weight:bold; color:var(--rojo);">Bloqueo de seguridad: Los datos tienen más de 30 días de antigüedad y no son confiables. Actualice el Excel.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; font-weight:bold; color:var(--rojo);">Bloqueo de seguridad: No se muestran datos. Actualice el Excel.</td></tr>`;
     return;
   }
 
+  // Si los datos son válidos y recientes
   alertDiv.style.display = 'none';
 
-  const encontrados = info.encontrados || [];
-  const faltantes = info.faltantes || [];
-  const sobrantes = info.sobrantes || [];
+  // Se pasan los arrays por la función limpiadora
+  const encontrados = limpiarIDs(info.encontrados);
+  const faltantes = limpiarIDs(info.faltantes);
+  const sobrantes = limpiarIDs(info.sobrantes);
   const teoricos = [...encontrados, ...faltantes];
   
   const maxFilas = Math.max(teoricos.length, encontrados.length, faltantes.length, sobrantes.length);
