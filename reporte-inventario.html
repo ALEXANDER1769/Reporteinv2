@@ -484,6 +484,9 @@ function renderizarGraficoHistorico() {
 
   const cantidadesBovinos = fechasOrdenadas.map(f => mapaBovinos[f] || 0);
   const cantidadesBufalinos = fechasOrdenadas.map(f => mapaBufalinos[f] || 0);
+  
+  // 🔥 AQUÍ SE CALCULA EL TOTAL AUTOMÁTICAMENTE SUMANDO AMBOS
+  const totalRebano = cantidadesBovinos.map((bov, i) => bov + cantidadesBufalinos[i]);
 
   if (cantidadesBovinos.length === 0 && cantidadesBufalinos.length === 0) {
     document.getElementById("graficoHistorico").parentElement.innerHTML = "<p style='text-align:center;color:#999;font-weight:bold;padding:40px;'>No hay datos válidos en los últimos 6 meses</p>";
@@ -497,39 +500,56 @@ function renderizarGraficoHistorico() {
       labels: fechasOrdenadas,
       datasets: [
         {
+          label: 'Total Rebaño (Suma)',
+          data: totalRebano,
+          borderColor: '#2c3e50', 
+          backgroundColor: 'rgba(44, 62, 80, 0.05)',
+          borderWidth: 4,
+          tension: 0.3, 
+          fill: false,
+          pointStyle: 'circle',
+          pointRadius: 5,
+          pointHoverRadius: 9
+        },
+        {
           label: 'Bovino / Equino',
           data: cantidadesBovinos,
-          borderColor: '#00b894',
-          backgroundColor: 'rgba(0, 184, 148, 0.15)',
-          borderWidth: 4,
+          borderColor: '#27ae60', 
+          backgroundColor: 'rgba(39, 174, 96, 0.1)',
+          borderWidth: 3,
           fill: true,
-          tension: 0.4,
-          pointRadius: 5,
-          pointBackgroundColor: '#00b894',
-          pointHoverRadius: 8,
-          pointHoverBackgroundColor: '#0984e3'
+          pointRadius: 4
         },
         {
           label: 'Bufalino',
           data: cantidadesBufalinos,
-          borderColor: '#e17055',
-          backgroundColor: 'rgba(225, 112, 85, 0.15)',
-          borderWidth: 4,
+          borderColor: '#e67e22', 
+          backgroundColor: 'rgba(230, 126, 34, 0.1)',
+          borderWidth: 3,
           fill: true,
-          tension: 0.4,
-          pointRadius: 5,
-          pointBackgroundColor: '#e17055',
-          pointHoverRadius: 8,
-          pointHoverBackgroundColor: '#d63031'
+          pointRadius: 4
         }
       ]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: true, position: 'top', labels: { font: { weight: 'bold', size: 14 } } } },
+      responsive: true,
+      maintainAspectRatio: false, 
+      plugins: {
+          title: { display: true, text: 'EVOLUCIÓN HISTÓRICA DEL INVENTARIO', font: { size: 16, weight: 'bold' } },
+          legend: { display: true, position: 'top', labels: { font: { weight: 'bold', size: 13 } } },
+          tooltip: { mode: 'index', intersect: false } 
+      },
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
       scales: {
-        y: { beginAtZero: true, title: { display: true, text: 'CANTIDAD TOTAL', font: {weight: 'bold'} }, ticks: { font: {weight: 'bold'} } },
-        x: { ticks: { font: {weight: 'bold'}, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 } }
+        y: {
+            beginAtZero: true,
+            title: { display: true, text: 'CANTIDAD DE ANIMALES', font: {weight: 'bold', size: 13} },
+            ticks: { font: {weight: 'bold'} }
+        },
+        x: {
+            title: { display: true, text: 'FECHA DEL REGISTRO', font: {weight: 'bold', size: 13} },
+            ticks: { font: {weight: 'bold'}, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 }
+        }
       }
     }
   });
