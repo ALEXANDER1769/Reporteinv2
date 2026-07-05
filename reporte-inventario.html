@@ -166,143 +166,156 @@ h2, h3 { text-align: center; font-weight: 800; color: var(--azul); margin-bottom
 
 <script>
 function renderizarGraficoHistorico() {
-  if (datosHistorico.length === 0 && datosHistoricoBufalino.length === 0) {
-    document.getElementById("graficoHistorico").parentElement.innerHTML = "<p style='text-align:center;color:#999;font-weight:bold;padding:40px;'>No hay datos históricos registrados</p>";
-    return;
-  }
+  try {
+    if (!datosHistorico || !datosHistoricoBufalino) return;
 
-  function procesarDatos(arregloDatos) {
-    let mapa = {};
-    let contamosUnoAUno = false;
+    if (datosHistorico.length === 0 && datosHistoricoBufalino.length === 0) {
+      document.getElementById("graficoHistorico").parentElement.innerHTML = "<p style='text-align:center;color:#999;font-weight:bold;padding:40px;'>No hay datos históricos registrados</p>";
+      return;
+    }
 
-    arregloDatos.forEach(registro => {
-      // 1. Buscamos la fecha. Si un animal no tiene fecha, lo metemos en una fecha base para no perderlo.
-      let fechaStr = registro.fecha || registro.Fecha || registro.FECHA || registro["Fecha/Hora"] || registro.created_at || "2020-01-01";
-      let f = new Date(fechaStr);
-      if (isNaN(f.getTime())) return;
-      
-      let diaAislado = f.toISOString().split('T')[0];
-      
-      // 2. Buscador de cantidades (incluyendo todas las variaciones)
-      let cantidad = registro.total || registro.Total || registro.TOTAL || 
-                     registro.cantidad || registro.Cantidad || registro.CANTIDAD || 
-                     registro["TOTAL GENERAL"] || registro.total_bovinos || 
-                     registro.total_bufalinos || registro.total_rebano;
-                     
-      let valor = parseInt(cantidad);
+    function procesarDatos(arregloDatos) {
+      let mapa = {};
+      let contamosUnoAUno = false;
 
-      if (!isNaN(valor) && valor > 0) {
-         // Si el sistema envía el total calculado, usamos el mayor número de ese día
-         mapa[diaAislado] = Math.max((mapa[diaAislado] || 0), valor);
-      } else {
-         // Si el sistema envía animal por animal, sumamos +1
-         mapa[diaAislado] = (mapa[diaAislado] || 0) + 1;
-         contamosUnoAUno = true; // Activamos el modo acumulativo
+      if (!Array.isArray(arregloDatos)) return mapa;
+
+      arregloDatos.forEach(registro => {
+        if (!registro) return; // Protección contra datos vacíos
+
+        let fechaStr = registro.fecha || registro.Fecha || registro.FECHA || registro["Fecha/Hora"] || registro.created_at;
+        if (!fechaStr) fechaStr = "2020-01-01"; 
+        
+        let f = new Date(fechaStr);
+        if (isNaN(f.getTime())) return; // Ignorar fechas inválidas
+        
+        let diaAislado = f.toISOString().split('T')[0];
+        
+        // Súper buscador de cantidades
+        let cantidad = registro.total || registro.Total || registro.TOTAL || 
+                       registro.cantidad || registro.Cantidad || registro.CANTIDAD || 
+                       registro["TOTAL GENERAL"] || registro.total_bovinos || 
+                       registro.total_bufalinos || registro.total_rebano;
+                       
+        let valor = parseInt(cantidad);
+
+        if (!isNaN(valor) && valor > 0) {
+           mapa[diaAislado] = Math.max((mapa[diaAislado] || 0), valor);
+        } else {
+           mapa[diaAislado] = (mapa[diaAislado] || 0) + 1;
+           contamosUnoAUno = true;
+        }
+      });
+
+      if (contamosUnoAUno) {
+         let diasOrdenados = Object.keys(mapa).sort();
+         let sumaAcumulada = 0;
+         diasOrdenados.forEach(dia => {
+             sumaAcumulada += mapa[dia];
+             mapa[dia] = sumaAcumulada;
+         });
       }
+      return mapa;
+    }
+
+    const mapaBovinos = procesarDatos(datosHistorico);
+    const mapaBufalinos = procesarDatos(datosHistoricoBufalino);
+
+    const setFechasUnicas = new Set([...Object.keys(mapaBovinos), ...Object.keys(mapaBufalinos)]);
+    const fechasOrdenadas = Array.from(setFechasUnicas).sort((a, b) => new Date(a) - new Date(b));
+
+    let ultimoBovino = 0;
+    let ultimoBufalino = 0;
+    
+    const cantidadesBovinos = fechasOrdenadas.map(f => {
+        if (mapaBovinos[f] !== undefined) ultimoBovino = mapaBovinos[f];
+        return ultimoBovino;
+    });
+    
+    const cantidadesBufalinos = fechasOrdenadas.map(f => {
+        if (mapaBufalinos[f] !== undefined) ultimoBufalino = mapaBufalinos[f];
+        return ultimoBufalino;
     });
 
-    // 3. LA MAGIA: Si contamos uno a uno, acumulamos la historia para que suba hasta 412
-    if (contamosUnoAUno) {
-       let diasOrdenados = Object.keys(mapa).sort();
-       let sumaAcumulada = 0;
-       diasOrdenados.forEach(dia => {
-           sumaAcumulada += mapa[dia];
-           mapa[dia] = sumaAcumulada; // Lo de hoy = Lo de ayer + los nuevos de hoy
-       });
-    }
+    const totalRebano = cantidadesBovinos.map((bov, i) => bov + cantidadesBufalinos[i]);
+
+    const canvas = document.getElementById("graficoHistorico");
+    if (!canvas) return; 
+    const ctx = canvas.getContext("2d");
     
-    return mapa;
-  }
-
-  const mapaBovinos = procesarDatos(datosHistorico);
-  const mapaBufalinos = procesarDatos(datosHistoricoBufalino);
-
-  const setFechasUnicas = new Set([...Object.keys(mapaBovinos), ...Object.keys(mapaBufalinos)]);
-  const fechasOrdenadas = Array.from(setFechasUnicas).sort((a, b) => new Date(a) - new Date(b));
-
-  // 4. Rellenamos días vacíos para que la línea no caiga a cero si un día no hubo ingresos
-  let ultimoBovino = 0;
-  let ultimoBufalino = 0;
-  
-  const cantidadesBovinos = fechasOrdenadas.map(f => {
-      if (mapaBovinos[f] !== undefined) ultimoBovino = mapaBovinos[f];
-      return ultimoBovino;
-  });
-  
-  const cantidadesBufalinos = fechasOrdenadas.map(f => {
-      if (mapaBufalinos[f] !== undefined) ultimoBufalino = mapaBufalinos[f];
-      return ultimoBufalino;
-  });
-
-  // 5. Calculamos el Total Real Sumado
-  const totalRebano = cantidadesBovinos.map((bov, i) => bov + cantidadesBufalinos[i]);
-
-  const ctx = document.getElementById("graficoHistorico").getContext("2d");
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: fechasOrdenadas,
-      datasets: [
-        {
-          label: 'Total Rebaño (Suma)',
-          data: totalRebano,
-          borderColor: '#2c3e50', 
-          backgroundColor: 'rgba(44, 62, 80, 0.05)',
-          borderWidth: 4,
-          tension: 0.3, 
-          fill: false,
-          pointStyle: 'circle',
-          pointRadius: 5,
-          pointHoverRadius: 9
-        },
-        {
-          label: 'Bovino / Equino',
-          data: cantidadesBovinos,
-          borderColor: '#27ae60', 
-          backgroundColor: 'rgba(39, 174, 96, 0.1)',
-          borderWidth: 3,
-          fill: true,
-          pointRadius: 4
-        },
-        {
-          label: 'Bufalino',
-          data: cantidadesBufalinos,
-          borderColor: '#e67e22', 
-          backgroundColor: 'rgba(230, 126, 34, 0.1)',
-          borderWidth: 3,
-          fill: true,
-          pointRadius: 4
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false, 
-      plugins: {
-          title: { display: true, text: 'EVOLUCIÓN HISTÓRICA DEL INVENTARIO', font: { size: 16, weight: 'bold' } },
-          legend: { display: true, position: 'top', labels: { font: { weight: 'bold', size: 13 } } },
-          tooltip: { mode: 'index', intersect: false } 
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: fechasOrdenadas,
+        datasets: [
+          {
+            label: 'Total Rebaño (Suma)',
+            data: totalRebano,
+            borderColor: '#2c3e50', 
+            backgroundColor: 'rgba(44, 62, 80, 0.05)',
+            borderWidth: 4,
+            tension: 0.3, 
+            fill: false,
+            pointStyle: 'circle',
+            pointRadius: 5,
+            pointHoverRadius: 9
+          },
+          {
+            label: 'Bovino / Equino',
+            data: cantidadesBovinos,
+            borderColor: '#27ae60', 
+            backgroundColor: 'rgba(39, 174, 96, 0.1)',
+            borderWidth: 3,
+            fill: true,
+            pointRadius: 4
+          },
+          {
+            label: 'Bufalino',
+            data: cantidadesBufalinos,
+            borderColor: '#e67e22', 
+            backgroundColor: 'rgba(230, 126, 34, 0.1)',
+            borderWidth: 3,
+            fill: true,
+            pointRadius: 4
+          }
+        ]
       },
-      interaction: { mode: 'nearest', axis: 'x', intersect: false },
-      scales: {
-        y: {
-            beginAtZero: true,
-            title: { display: true, text: 'CANTIDAD DE ANIMALES', font: {weight: 'bold', size: 13} },
-            ticks: { font: {weight: 'bold'} }
+      options: {
+        responsive: true,
+        maintainAspectRatio: false, 
+        plugins: {
+            title: { display: true, text: 'EVOLUCIÓN HISTÓRICA DEL INVENTARIO', font: { size: 16, weight: 'bold' } },
+            legend: { display: true, position: 'top', labels: { font: { weight: 'bold', size: 13 } } },
+            tooltip: { mode: 'index', intersect: false } 
         },
-        x: {
-            title: { display: true, text: 'FECHA DEL REGISTRO', font: {weight: 'bold', size: 13} },
-            ticks: { font: {weight: 'bold'}, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 }
+        interaction: { mode: 'nearest', axis: 'x', intersect: false },
+        scales: {
+          y: {
+              beginAtZero: true,
+              title: { display: true, text: 'CANTIDAD DE ANIMALES', font: {weight: 'bold', size: 13} },
+              ticks: { font: {weight: 'bold'} }
+          },
+          x: {
+              title: { display: true, text: 'FECHA DEL REGISTRO', font: {weight: 'bold', size: 13} },
+              ticks: { font: {weight: 'bold'}, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 }
+          }
         }
       }
-    }
-  });
+    });
+  } catch (error) {
+    // Si algo falla, muestra el error sin trancar la página
+    console.error("Error en el gráfico histórico:", error);
+    document.getElementById("graficoHistorico").parentElement.innerHTML = `<p style='text-align:center;color:red;font-weight:bold;padding:40px;'>⚠️ Ocurrió un error al cargar este gráfico en específico.</p>`;
+  }
 }
+
 function mostrarError(mensaje) {
   document.getElementById("loader").style.display = "none";
   const err = document.getElementById("error");
-  err.textContent = "❌ " + mensaje;
-  err.style.display = "block";
+  if(err) {
+    err.textContent = "❌ " + mensaje;
+    err.style.display = "block";
+  }
 }
 </script>
 </body>
