@@ -165,158 +165,763 @@ h2, h3 { text-align: center; font-weight: 800; color: var(--azul); margin-bottom
 </div>
 
 <script>
-function renderizarGraficoHistorico() {
-  try {
-    if (!datosHistorico || !datosHistoricoBufalino) return;
+<script>
 
-    if (datosHistorico.length === 0 && datosHistoricoBufalino.length === 0) {
-      document.getElementById("graficoHistorico").parentElement.innerHTML = "<p style='text-align:center;color:#999;font-weight:bold;padding:40px;'>No hay datos históricos registrados</p>";
-      return;
-    }
+// 🔥 PLUGIN CUSTOM PARA EFECTO 3D EN LAS GRÁFICAS
 
-    function procesarDatos(arregloDatos) {
-      let mapa = {};
-      let contamosUnoAUno = false;
+const pluginSombra3D = {
 
-      if (!Array.isArray(arregloDatos)) return mapa;
+  id: 'sombra3D',
 
-      arregloDatos.forEach(registro => {
-        if (!registro) return; // Protección contra datos vacíos
+  beforeDatasetsDraw: function(chart) {
 
-        let fechaStr = registro.fecha || registro.Fecha || registro.FECHA || registro["Fecha/Hora"] || registro.created_at;
-        if (!fechaStr) fechaStr = "2020-01-01"; 
-        
-        let f = new Date(fechaStr);
-        if (isNaN(f.getTime())) return; // Ignorar fechas inválidas
-        
-        let diaAislado = f.toISOString().split('T')[0];
-        
-        // Súper buscador de cantidades
-        let cantidad = registro.total || registro.Total || registro.TOTAL || 
-                       registro.cantidad || registro.Cantidad || registro.CANTIDAD || 
-                       registro["TOTAL GENERAL"] || registro.total_bovinos || 
-                       registro.total_bufalinos || registro.total_rebano;
-                       
-        let valor = parseInt(cantidad);
+    const ctx = chart.ctx;
 
-        if (!isNaN(valor) && valor > 0) {
-           mapa[diaAislado] = Math.max((mapa[diaAislado] || 0), valor);
-        } else {
-           mapa[diaAislado] = (mapa[diaAislado] || 0) + 1;
-           contamosUnoAUno = true;
-        }
-      });
+    ctx.save();
 
-      if (contamosUnoAUno) {
-         let diasOrdenados = Object.keys(mapa).sort();
-         let sumaAcumulada = 0;
-         diasOrdenados.forEach(dia => {
-             sumaAcumulada += mapa[dia];
-             mapa[dia] = sumaAcumulada;
-         });
-      }
-      return mapa;
-    }
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.35)'; // Sombra oscura
 
-    const mapaBovinos = procesarDatos(datosHistorico);
-    const mapaBufalinos = procesarDatos(datosHistoricoBufalino);
+    ctx.shadowBlur = 10; 
 
-    const setFechasUnicas = new Set([...Object.keys(mapaBovinos), ...Object.keys(mapaBufalinos)]);
-    const fechasOrdenadas = Array.from(setFechasUnicas).sort((a, b) => new Date(a) - new Date(b));
+    ctx.shadowOffsetX = 4; 
 
-    let ultimoBovino = 0;
-    let ultimoBufalino = 0;
-    
-    const cantidadesBovinos = fechasOrdenadas.map(f => {
-        if (mapaBovinos[f] !== undefined) ultimoBovino = mapaBovinos[f];
-        return ultimoBovino;
-    });
-    
-    const cantidadesBufalinos = fechasOrdenadas.map(f => {
-        if (mapaBufalinos[f] !== undefined) ultimoBufalino = mapaBufalinos[f];
-        return ultimoBufalino;
-    });
+    ctx.shadowOffsetY = 4; 
 
-    const totalRebano = cantidadesBovinos.map((bov, i) => bov + cantidadesBufalinos[i]);
+  },
 
-    const canvas = document.getElementById("graficoHistorico");
-    if (!canvas) return; 
-    const ctx = canvas.getContext("2d");
-    
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: fechasOrdenadas,
-        datasets: [
-          {
-            label: 'Total Rebaño (Suma)',
-            data: totalRebano,
-            borderColor: '#2c3e50', 
-            backgroundColor: 'rgba(44, 62, 80, 0.05)',
-            borderWidth: 4,
-            tension: 0.3, 
-            fill: false,
-            pointStyle: 'circle',
-            pointRadius: 5,
-            pointHoverRadius: 9
-          },
-          {
-            label: 'Bovino / Equino',
-            data: cantidadesBovinos,
-            borderColor: '#27ae60', 
-            backgroundColor: 'rgba(39, 174, 96, 0.1)',
-            borderWidth: 3,
-            fill: true,
-            pointRadius: 4
-          },
-          {
-            label: 'Bufalino',
-            data: cantidadesBufalinos,
-            borderColor: '#e67e22', 
-            backgroundColor: 'rgba(230, 126, 34, 0.1)',
-            borderWidth: 3,
-            fill: true,
-            pointRadius: 4
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false, 
-        plugins: {
-            title: { display: true, text: 'EVOLUCIÓN HISTÓRICA DEL INVENTARIO', font: { size: 16, weight: 'bold' } },
-            legend: { display: true, position: 'top', labels: { font: { weight: 'bold', size: 13 } } },
-            tooltip: { mode: 'index', intersect: false } 
-        },
-        interaction: { mode: 'nearest', axis: 'x', intersect: false },
-        scales: {
-          y: {
-              beginAtZero: true,
-              title: { display: true, text: 'CANTIDAD DE ANIMALES', font: {weight: 'bold', size: 13} },
-              ticks: { font: {weight: 'bold'} }
-          },
-          x: {
-              title: { display: true, text: 'FECHA DEL REGISTRO', font: {weight: 'bold', size: 13} },
-              ticks: { font: {weight: 'bold'}, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 }
-          }
-        }
-      }
-    });
-  } catch (error) {
-    // Si algo falla, muestra el error sin trancar la página
-    console.error("Error en el gráfico histórico:", error);
-    document.getElementById("graficoHistorico").parentElement.innerHTML = `<p style='text-align:center;color:red;font-weight:bold;padding:40px;'>⚠️ Ocurrió un error al cargar este gráfico en específico.</p>`;
+  afterDatasetsDraw: function(chart) {
+
+    chart.ctx.restore();
+
   }
+
+};
+
+Chart.register(pluginSombra3D);
+
+
+
+const coloresVivos = ['#0984e3', '#00b894', '#fdcb6e', '#6c5ce7', '#e17055', '#d63031', '#00cec9', '#e84393', '#2d3436', '#f1c40f'];
+
+
+
+let totalGeneral = 0;
+
+let datosPorLote = {};
+
+let datosPorTipo = {};
+
+let datosHistorico = [];
+
+let datosHistoricoBufalino = []; 
+
+let conciliacionGlobal = {}; 
+
+
+
+// 🔥 FUNCIÓN LIMPIADORA: Elimina IDs fantasmas, vacíos o erróneos enviados por Apps Script
+
+function limpiarIDs(arr) {
+
+  if (!arr) return [];
+
+  return arr.filter(id => {
+
+    const val = String(id).trim();
+
+    return val !== "" && val !== "()" && val !== "-" && val !== "undefined" && val !== "null";
+
+  });
+
 }
+
+
+
+document.addEventListener('DOMContentLoaded', function() {
+
+  const params = new URLSearchParams(window.location.search);
+
+  const email = params.get("email");
+
+
+
+  if (!email) {
+
+    mostrarError("Acceso no autorizado. Inicie sesión desde el panel principal.");
+
+    return;
+
+  }
+
+
+
+  fetch("https://pysiga.d-alexjose.workers.dev", {
+
+    method: "POST",
+
+    headers: { "Content-Type": "application/json" },
+
+    body: JSON.stringify({ accion: "reporteInventario", email: email })
+
+  })
+
+  .then(response => {
+
+    if (!response.ok) throw new Error("Error del servidor: " + response.status);
+
+    return response.json();
+
+  })
+
+  .then(data => {
+
+    if (!data.ok) throw new Error(data.error || "Respuesta inválida del servidor");
+
+
+
+    totalGeneral = data.total || 0;
+
+    datosPorLote = data.porLote || {};
+
+    datosPorTipo = data.porTipo || {};
+
+    datosHistorico = data.historico || [];
+
+    datosHistoricoBufalino = data.historicoBufalino || [];
+
+    conciliacionGlobal = data.conciliacion || {}; 
+
+
+
+    if (totalGeneral === 0 && datosHistorico.length === 0 && datosHistoricoBufalino.length === 0) {
+
+      throw new Error("No se encontraron registros de inventario");
+
+    }
+
+
+
+    document.getElementById("total-general").textContent = totalGeneral.toLocaleString();
+
+    renderizarGraficoLote();
+
+    renderizarGraficoTipo();
+
+    renderizarGraficoHistorico();
+
+    renderizarGraficoAuditoria();
+
+    
+
+    inicializarSelectorAuditoria();
+
+
+
+    document.getElementById("loader").style.display = "none";
+
+    document.getElementById("contenido").style.display = "block";
+
+
+
+    document.getElementById("btnVolver").addEventListener("click", function() {
+
+      if (window.history.length > 1) {
+
+        window.history.back();
+
+      } else {
+
+        window.close();
+
+      }
+
+    });
+
+  })
+
+  .catch(err => {
+
+    mostrarError("Error al cargar los datos: " + err.message);
+
+  });
+
+});
+
+
+
+// ==========================================
+
+// 🔥 LÓGICA DE AUDITORÍA FÍSICA Y GRÁFICO
+
+// ==========================================
+
+
+
+function renderizarGraficoAuditoria() {
+
+  const lotesConAuditoria = Object.keys(conciliacionGlobal);
+
+  if(lotesConAuditoria.length === 0) return;
+
+
+
+  document.getElementById("contenedorGraficoAuditoria").style.display = "block";
+
+
+
+  // Se aplica la limpieza para evitar que barras falsas sumen +1
+
+  const encontrados = lotesConAuditoria.map(l => limpiarIDs(conciliacionGlobal[l].encontrados).length);
+
+  const faltantes = lotesConAuditoria.map(l => limpiarIDs(conciliacionGlobal[l].faltantes).length);
+
+  const sobrantes = lotesConAuditoria.map(l => limpiarIDs(conciliacionGlobal[l].sobrantes).length);
+
+
+
+  const ctx = document.getElementById("graficoAuditoria").getContext("2d");
+
+  new Chart(ctx, {
+
+    type: 'bar',
+
+    data: {
+
+      labels: lotesConAuditoria,
+
+      datasets: [
+
+        { label: 'Encontrados ✅', data: encontrados, backgroundColor: '#00b894', borderRadius: 4 },
+
+        { label: 'Faltantes ❌', data: faltantes, backgroundColor: '#d63031', borderRadius: 4 },
+
+        { label: 'Sobrantes ⚠️', data: sobrantes, backgroundColor: '#f1c40f', borderRadius: 4 }
+
+      ]
+
+    },
+
+    options: {
+
+      indexAxis: 'y', 
+
+      responsive: true, 
+
+      maintainAspectRatio: false,
+
+      plugins: { legend: { position: 'bottom', labels: { font: { weight: 'bold', size: 13 } } } },
+
+      scales: {
+
+        x: { beginAtZero: true, ticks: { stepSize: 1, font: { weight: 'bold' } } },
+
+        y: { ticks: { font: { weight: 'bold' } } }
+
+      }
+
+    }
+
+  });
+
+}
+
+
+
+function inicializarSelectorAuditoria() {
+
+  const sel = document.getElementById("selectorLoteAuditoria");
+
+  sel.innerHTML = '<option value="">-- Selecciona el lote a auditar --</option>';
+
+  
+
+  const todosLosLotes = Object.keys(datosPorLote);
+
+  
+
+  if (todosLosLotes.length === 0) {
+
+    sel.innerHTML = '<option value="">No hay lotes registrados en el sistema</option>';
+
+    sel.disabled = true;
+
+    return;
+
+  }
+
+
+
+  todosLosLotes.forEach(lote => {
+
+    let opt = document.createElement("option");
+
+    opt.value = lote; opt.textContent = lote;
+
+    sel.appendChild(opt);
+
+  });
+
+}
+
+
+
+function actualizarTablaAuditoria() {
+
+  const lote = document.getElementById("selectorLoteAuditoria").value;
+
+  const tbody = document.getElementById("tabla-body-auditoria");
+
+  const alertDiv = document.getElementById("alerta-caducidad");
+
+  
+
+  if(!lote) {
+
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--gris); font-weight:bold;">Seleccione un lote en el menú superior para ver la conciliación</td></tr>';
+
+    alertDiv.style.display = 'none';
+
+    return;
+
+  }
+
+
+
+  const info = conciliacionGlobal[lote];
+
+  let mostrarBloqueo = false;
+
+
+
+  // Lógica unificada para determinar si el inventario no existe o caducó
+
+  if (!info) {
+
+    mostrarBloqueo = true;
+
+  } else {
+
+    let fechaInv = new Date(info.ultimaFecha);
+
+    if (isNaN(fechaInv.getTime())) {
+
+      mostrarBloqueo = true;
+
+    } else {
+
+      const diffDias = Math.ceil((new Date() - fechaInv) / (1000 * 60 * 60 * 24));
+
+      if (diffDias > 30) {
+
+        mostrarBloqueo = true;
+
+      }
+
+    }
+
+  }
+
+
+
+  // Si no hay datos, formato inválido o pasaron 30 días, muestra la alerta solicitada
+
+  if (mostrarBloqueo) {
+
+    alertDiv.style.display = 'block';
+
+    alertDiv.style.background = '#fadbd8';
+
+    alertDiv.style.color = '#c0392b';
+
+    alertDiv.style.borderColor = '#e74c3c';
+
+    alertDiv.innerHTML = `🚨 <b>Inventario con mas de 30 dias de antiguedad o inexistente. Actualice o realice el inventario del lote.</b>`;
+
+    
+
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; font-weight:bold; color:var(--rojo);">Bloqueo de seguridad: No se muestran datos. Actualice el Excel.</td></tr>`;
+
+    return;
+
+  }
+
+
+
+  // Si los datos son válidos y recientes
+
+  alertDiv.style.display = 'none';
+
+
+
+  // Se pasan los arrays por la función limpiadora
+
+  const encontrados = limpiarIDs(info.encontrados);
+
+  const faltantes = limpiarIDs(info.faltantes);
+
+  const sobrantes = limpiarIDs(info.sobrantes);
+
+  const teoricos = [...encontrados, ...faltantes];
+
+  
+
+  const maxFilas = Math.max(teoricos.length, encontrados.length, faltantes.length, sobrantes.length);
+
+  tbody.innerHTML = '';
+
+
+
+  if(maxFilas === 0) {
+
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--gris); font-weight:bold;">Auditoría reciente, pero no se registraron IDs para este lote.</td></tr>';
+
+    return;
+
+  }
+
+
+
+  for (let i = 0; i < maxFilas; i++) {
+
+    const tr = document.createElement('tr');
+
+    tr.style.borderBottom = "1px solid var(--borde)";
+
+    tr.innerHTML = `
+
+      <td style="padding:10px; border-right:1px solid var(--borde); font-weight:600;">${teoricos[i] || '-'}</td>
+
+      <td style="padding:10px; border-right:1px solid var(--borde); color:var(--verde); font-weight:bold;">${encontrados[i] || '-'}</td>
+
+      <td style="padding:10px; border-right:1px solid var(--borde); color:var(--rojo); font-weight:bold;">${faltantes[i] || '-'}</td>
+
+      <td style="padding:10px; color:var(--amarillo); font-weight:bold;">${sobrantes[i] || '-'}</td>
+
+    `;
+
+    tbody.appendChild(tr);
+
+  }
+
+}
+
+// ==========================================
+
+
+
+function renderizarGraficoLote() {
+
+  const lotes = Object.keys(datosPorLote);
+
+  const cantidades = Object.values(datosPorLote);
+
+
+
+  if (lotes.length === 0) {
+
+    document.getElementById("graficoLote").parentElement.innerHTML = "<p style='text-align:center;color:#999;font-weight:bold;padding:40px;'>No hay datos por lote</p>";
+
+    return;
+
+  }
+
+
+
+  const ctx = document.getElementById("graficoLote").getContext("2d");
+
+  new Chart(ctx, {
+
+    type: 'bar',
+
+    data: {
+
+      labels: lotes,
+
+      datasets: [{
+
+        label: 'Cantidad de Animales',
+
+        data: cantidades,
+
+        backgroundColor: coloresVivos.slice(0, lotes.length),
+
+        borderWidth: 0,
+
+        borderRadius: 8
+
+      }]
+
+    },
+
+    options: {
+
+      responsive: true, maintainAspectRatio: false,
+
+      plugins: { legend: { display: false } },
+
+      scales: { 
+
+        y: { beginAtZero: true, title: { display: true, text: 'CABEZAS DE GANADO', font: {weight: 'bold'} }, ticks: { stepSize: 1, font: {weight: 'bold'} } },
+
+        x: { ticks: { font: {weight: 'bold', size: 13} } }
+
+      }
+
+    }
+
+  });
+
+}
+
+
+
+function renderizarGraficoTipo() {
+
+  const tipos = Object.keys(datosPorTipo);
+
+  const cantidades = Object.values(datosPorTipo);
+
+
+
+  if (tipos.length === 0) {
+
+    document.getElementById("graficoTipo").parentElement.innerHTML = "<p style='text-align:center;color:#999;font-weight:bold;padding:40px;'>No hay datos de clasificación</p>";
+
+    return;
+
+  }
+
+
+
+  const bgColors = tipos.map((_, i) => coloresVivos[i % coloresVivos.length]);
+
+
+
+  const ctx = document.getElementById("graficoTipo").getContext("2d");
+
+  new Chart(ctx, {
+
+    type: 'doughnut',
+
+    data: {
+
+      labels: tipos,
+
+      datasets: [{
+
+        data: cantidades,
+
+        backgroundColor: bgColors,
+
+        borderWidth: 3, 
+
+        borderColor: '#ffffff',
+
+        hoverOffset: 8
+
+      }]
+
+    },
+
+    options: { 
+
+      responsive: true, maintainAspectRatio: false, 
+
+      plugins: { 
+
+        legend: { position: 'right', labels: { font: {weight: 'bold', size: 13} } } 
+
+      } 
+
+    }
+
+  });
+
+}
+
+
+
+function renderizarGraficoHistorico() {
+
+  if (datosHistorico.length === 0 && datosHistoricoBufalino.length === 0) {
+
+    document.getElementById("graficoHistorico").parentElement.innerHTML = "<p style='text-align:center;color:#999;font-weight:bold;padding:40px;'>No hay datos históricos registrados</p>";
+
+    return;
+
+  }
+
+
+
+  const fechaLimite = new Date();
+
+  fechaLimite.setMonth(fechaLimite.getMonth() - 6);
+
+
+
+  function procesarDatosHistoricos(arregloDatos) {
+
+    const mapa = {};
+
+    arregloDatos.forEach(registro => {
+
+      let fechaStr = registro.fecha || registro.Fecha || registro["Fecha/Hora"];
+
+      if (!fechaStr) return;
+
+      let f = new Date(fechaStr);
+
+      if (!isNaN(f.getTime()) && f >= fechaLimite) {
+
+        let diaAislado = fechaStr.split('T')[0].split(' ')[0];
+
+        let cantidad = registro.total || registro.cantidad || registro.Cantidad || registro["TOTAL GENERAL"] || 0;
+
+        mapa[diaAislado] = parseInt(cantidad) || 0;
+
+      }
+
+    });
+
+    return mapa;
+
+  }
+
+
+
+  const mapaBovinos = procesarDatosHistoricos(datosHistorico);
+
+  const mapaBufalinos = procesarDatosHistoricos(datosHistoricoBufalino);
+
+
+
+  const setFechasUnicas = new Set([...Object.keys(mapaBovinos), ...Object.keys(mapaBufalinos)]);
+
+  const fechasOrdenadas = Array.from(setFechasUnicas).sort((a, b) => new Date(a) - new Date(b));
+
+
+
+  const cantidadesBovinos = fechasOrdenadas.map(f => mapaBovinos[f] || 0);
+
+  const cantidadesBufalinos = fechasOrdenadas.map(f => mapaBufalinos[f] || 0);
+
+
+
+  if (cantidadesBovinos.length === 0 && cantidadesBufalinos.length === 0) {
+
+    document.getElementById("graficoHistorico").parentElement.innerHTML = "<p style='text-align:center;color:#999;font-weight:bold;padding:40px;'>No hay datos válidos en los últimos 6 meses</p>";
+
+    return;
+
+  }
+
+
+
+  const ctx = document.getElementById("graficoHistorico").getContext("2d");
+
+  new Chart(ctx, {
+
+    type: 'line',
+
+    data: {
+
+      labels: fechasOrdenadas,
+
+      datasets: [
+
+        {
+
+          label: 'Bovino / Equino',
+
+          data: cantidadesBovinos,
+
+          borderColor: '#00b894',
+
+          backgroundColor: 'rgba(0, 184, 148, 0.15)',
+
+          borderWidth: 4,
+
+          fill: true,
+
+          tension: 0.4,
+
+          pointRadius: 5,
+
+          pointBackgroundColor: '#00b894',
+
+          pointHoverRadius: 8,
+
+          pointHoverBackgroundColor: '#0984e3'
+
+        },
+
+        {
+
+          label: 'Bufalino',
+
+          data: cantidadesBufalinos,
+
+          borderColor: '#e17055',
+
+          backgroundColor: 'rgba(225, 112, 85, 0.15)',
+
+          borderWidth: 4,
+
+          fill: true,
+
+          tension: 0.4,
+
+          pointRadius: 5,
+
+          pointBackgroundColor: '#e17055',
+
+          pointHoverRadius: 8,
+
+          pointHoverBackgroundColor: '#d63031'
+
+        }
+
+      ]
+
+    },
+
+    options: {
+
+      responsive: true, maintainAspectRatio: false,
+
+      plugins: { legend: { display: true, position: 'top', labels: { font: { weight: 'bold', size: 14 } } } },
+
+      scales: {
+
+        y: { beginAtZero: true, title: { display: true, text: 'CANTIDAD TOTAL', font: {weight: 'bold'} }, ticks: { font: {weight: 'bold'} } },
+
+        x: { ticks: { font: {weight: 'bold'}, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 } }
+
+      }
+
+    }
+
+  });
+
+}
+
+
 
 function mostrarError(mensaje) {
+
   document.getElementById("loader").style.display = "none";
+
   const err = document.getElementById("error");
-  if(err) {
-    err.textContent = "❌ " + mensaje;
-    err.style.display = "block";
-  }
+
+  err.textContent = "❌ " + mensaje;
+
+  err.style.display = "block";
+
 }
+
 </script>
+
 </body>
-</html>
+
+</html> 
+
