@@ -578,7 +578,7 @@ function ejecutarConciliacionCruzada() {
   btn.innerHTML = "⏳ Analizando cruces en BD...";
   btn.disabled = true;
 
-  // Ajustamos a la fecha actual para enviar al worker
+  // Obtiene la fecha exacta de hoy para comparar con los inventarios físicos
   const fechaHoy = new Date().toISOString().split('T')[0];
 
   fetch("https://pysiga.d-alexjose.workers.dev", { 
@@ -595,34 +595,37 @@ function ejecutarConciliacionCruzada() {
     btn.innerHTML = "🔍 Ejecutar Búsqueda Cruzada (Faltantes y Sobrantes)";
     btn.disabled = false;
 
-    if (!data.ok) throw new Error(data.error);
+    if (!data.ok) throw new Error(data.error || "Error desconocido en el Worker");
 
     contenedor.style.display = "block";
     tbody.innerHTML = "";
 
-    if (data.resultados.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; font-weight:bold; color:var(--verde);">✅ ¡Excelente! No hay animales cruzados o perdidos hoy.</td></tr>';
+    // Si la consulta devuelve 0 resultados, muestra este mensaje
+    if (!data.resultados || data.resultados.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; font-weight:bold; color:var(--verde);">✅ ¡Excelente! No hay animales cruzados o perdidos hoy (o no hay inventario físico registrado con la fecha de hoy).</td></tr>';
       return;
     }
 
+    // Dibuja las filas con los IDs largos y el número práctico
     data.resultados.forEach(item => {
       const tr = document.createElement("tr");
       tr.style.borderBottom = "1px solid var(--borde)";
       
-      // Colores dinámicos para el diagnóstico
       let colorDiag = "var(--amarillo)";
-      if(item.diagnostico.includes("Faltante")) colorDiag = "var(--rojo)";
-      if(item.diagnostico.includes("Sobrante")) colorDiag = "var(--morado)";
+      let diag = item.diagnostico || "";
+      if(diag.includes("Faltante")) colorDiag = "var(--rojo)";
+      if(diag.includes("Sobrante")) colorDiag = "var(--morado)";
       
       tr.innerHTML = `
-    <td style="padding:10px; font-weight:bold; font-size:12px;">
-      ${item.id_animal_resultado}<br>
-      <span style="color:var(--gris); font-size:11px;">N°: ${item.numero_practico_resultado}</span>
-    </td>
-    <td style="padding:10px; color:var(--azul); font-weight:bold;">${item.lote_registrado}</td>
-    <td style="padding:10px; color:var(--verde); font-weight:bold;">${item.lote_fisico}</td>
-    <td style="padding:10px; color:${colorDiag}; font-weight:bold;">${item.diagnostico}</td>
-  `;
+        <td style="padding:10px; font-weight:bold; font-size:12px;">
+          ${item.id_animal_resultado || '-'}<br>
+          <span style="color:var(--gris); font-size:11px;">N°: ${item.numero_practico_resultado || '-'}</span>
+        </td>
+        <td style="padding:10px; color:var(--azul); font-weight:bold;">${item.lote_registrado || '-'}</td>
+        <td style="padding:10px; color:var(--verde); font-weight:bold;">${item.lote_fisico || '-'}</td>
+        <td style="padding:10px; color:${colorDiag}; font-weight:bold;">${diag}</td>
+      `;
+      tbody.appendChild(tr);
     });
   })
   .catch(err => {
