@@ -611,24 +611,35 @@ function ejecutarConciliacionCruzada() {
     }
 
     data.resultados.forEach(item => {
-      // Filtrar para mostrar SOLO los problemas (Faltantes y Sobrantes), ignorando los 'Encontrado'
+      // Mostrar SOLO Faltantes y Sobrantes
       if (item.estado_auditoria !== 'Encontrado') {
           const tr = document.createElement("tr");
           tr.style.borderBottom = "1px solid var(--borde)";
           
           let colorDiag = "var(--amarillo)";
           let diag = item.detalle_cruzado || "";
+          let asignadoWeb = "Sin Lote";
+          let leidoFisico = "No leído";
           
-          if(item.estado_auditoria === "Faltante") colorDiag = "var(--rojo)";
-          if(item.estado_auditoria === "Sobrante") colorDiag = "var(--morado)";
+          if(item.estado_auditoria === "Faltante") {
+              colorDiag = "var(--rojo)";
+              asignadoWeb = loteSeleccionado;
+              leidoFisico = "No leído en este corral";
+          }
+          if(item.estado_auditoria === "Sobrante") {
+              colorDiag = "var(--morado)";
+              asignadoWeb = "No pertenece aquí";
+              leidoFisico = loteSeleccionado;
+          }
           
           tr.innerHTML = `
             <td style="padding:10px; font-weight:bold; font-size:12px;">
               ${item.id_animal || '-'}<br>
               <span style="color:var(--gris); font-size:11px;">N°: ${item.numero_practico || '-'}</span>
             </td>
-            <td style="padding:10px; color:var(--azul); font-weight:bold;">${item.estado_auditoria}</td>
-            <td style="padding:10px; color:${colorDiag}; font-weight:bold;" colspan="2">${diag}</td>
+            <td style="padding:10px; color:var(--azul); font-weight:bold;">${asignadoWeb}</td>
+            <td style="padding:10px; color:var(--verde); font-weight:bold;">${leidoFisico}</td>
+            <td style="padding:10px; color:${colorDiag}; font-weight:bold;">${diag}</td>
           `;
           tbody.appendChild(tr);
       }
