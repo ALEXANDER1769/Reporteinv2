@@ -138,33 +138,33 @@ h2, h3 { text-align: center; font-weight: 800; color: var(--azul); margin-bottom
           <option value="">Cargando lotes...</option>
         </select>
       </div>
-<!-- 🔴 NUEVO: Botón y Tabla de Conciliación Cruzada -->
-      <div style="text-align:center; margin-top: 15px; margin-bottom: 25px;">
-        <button id="btnConciliarAvanzado" class="btn btn-primary" style="background: var(--morado); width: 100%; max-width: 400px; justify-content: center; font-size: 16px; padding: 12px;" onclick="ejecutarConciliacionCruzada()">
-          🔍 Ejecutar Búsqueda Cruzada (Faltantes y Sobrantes)
-        </button>
-      </div>
-
-      <div id="contenedor-cruzados" style="display:none; margin-bottom: 30px; border: 2px solid var(--morado); border-radius: 8px; padding: 15px; background: #fbfaff;">
-        <h3 style="color: var(--morado); margin-bottom: 15px; font-size: 16px;">🔄 Reporte Global de Búsqueda Cruzada</h3>
-        <p style="text-align:center; font-size: 13px; color: var(--gris); margin-bottom: 15px;">Animales leídos hoy en lotes equivocados, o ausentes en toda la finca.</p>
-        
-        <div style="overflow-x:auto; border: 1px solid var(--borde); border-radius: 8px;">
-          <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:left; background: white;">
-            <thead>
-              <tr style="background:var(--fondo); border-bottom:2px solid var(--borde);">
-                <th style="padding:10px; color:var(--morado);">ID / N° Práctico</th>
-                <th style="padding:10px; color:var(--azul);">Asignado Web</th>
-                <th style="padding:10px; color:var(--verde);">Leído Físico</th>
-                <th style="padding:10px; color:var(--rojo);">Diagnóstico</th>
-              </tr>
-            </thead>
-            <tbody id="tabla-body-cruzados">
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <!-- 🔴 FIN NUEVO BLOQUE -->
+      <!-- 🔴 NUEVO: BUSCADOR HISTORIAL DE ANIMAL -->
+  <div style="margin-top: 30px; border: 2px solid var(--azul); border-radius: 8px; padding: 15px; background: #f4f9fd; margin-bottom: 30px;">
+    <h3 style="color: var(--azul); margin-bottom: 10px; font-size: 16px;">🔎 Rastrear Ruta de un Animal</h3>
+    <p style="font-size: 13px; color: var(--gris); margin-bottom: 15px;">Pega el ID del chip para ver en qué lotes y fechas ha sido leído físicamente.</p>
+    
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+      <input type="text" id="inputBuscarAnimal" placeholder="Ej: 900233003391157" style="flex: 1; min-width: 200px; padding: 10px; border: 1px solid var(--borde); border-radius: 5px; font-size: 14px;">
+      <button id="btnBuscarAnimal" class="btn" style="background: var(--azul); color: white; padding: 10px 20px; font-weight: bold; border-radius: 5px;" onclick="ejecutarBusquedaHistorial()">
+        🔍 Buscar Historial
+      </button>
+    </div>
+    <div id="contenedor-historial" style="display:none; overflow-x:auto; border: 1px solid var(--borde); border-radius: 8px;">
+      <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:left; background: white;">
+        <thead>
+          <tr style="background:var(--fondo); border-bottom:2px solid var(--borde);">
+            <th style="padding:10px; color:var(--morado);">ID de Chip</th>
+            <th style="padding:10px; color:var(--azul);">N° Práctico</th>
+            <th style="padding:10px; color:var(--gris);">Color</th>
+            <th style="padding:10px; color:var(--rojo);">Fecha Leído</th>
+            <th style="padding:10px; color:var(--verde);">Lote Físico</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-body-historial">
+        </tbody>
+      </table>
+    </div>
+  </div>
       <div id="alerta-caducidad" style="display:none; padding:15px; border-left:5px solid; margin-bottom:15px; border-radius:5px; font-weight:bold; text-align:center; font-size: 15px;"></div>
 
       <div style="overflow-x:auto; border: 1px solid var(--borde); border-radius: 8px;">
@@ -567,37 +567,37 @@ function mostrarError(mensaje) {
   err.textContent = "❌ " + mensaje;
   err.style.display = "block";
 }
-  // 🔥 NUEVA FUNCIÓN: Llama a la conciliación avanzada por RPC
-function ejecutarConciliacionCruzada() {
-  const btn = document.getElementById("btnConciliarAvanzado");
-  const contenedor = document.getElementById("contenedor-cruzados");
-  const tbody = document.getElementById("tabla-body-cruzados");
+  function ejecutarBusquedaHistorial() {
+  const btn = document.getElementById("btnBuscarAnimal");
+  const input = document.getElementById("inputBuscarAnimal");
+  const contenedor = document.getElementById("contenedor-historial");
+  const tbody = document.getElementById("tabla-body-historial");
   const params = new URLSearchParams(window.location.search);
   const email = params.get("email");
 
-  // Capturar el lote seleccionado en el menú desplegable
-  const loteSeleccionado = document.getElementById("selectorLoteAuditoria").value;
+  // Limpia espacios accidentales al pegar
+  const idABuscar = input.value.trim(); 
 
-  if (!loteSeleccionado) {
-    alert("Por favor, seleccione un lote en el menú superior antes de ejecutar la búsqueda cruzada.");
+  if (!idABuscar) {
+    alert("Por favor, ingrese o pegue el ID del animal que desea buscar.");
     return;
   }
 
-  btn.innerHTML = "⏳ Analizando cruces en BD...";
+  btn.innerHTML = "⏳ Buscando...";
   btn.disabled = true;
 
   fetch("https://pysiga.d-alexjose.workers.dev", { 
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      accion: "conciliarLotesCruzados",
+      accion: "buscarHistorialAnimal",
       email: email,
-      lote: loteSeleccionado // Enviamos el lote en lugar de la fecha
+      id_animal: idABuscar
     })
   })
   .then(res => res.json())
   .then(data => {
-    btn.innerHTML = "🔍 Ejecutar Búsqueda Cruzada (Faltantes y Sobrantes)";
+    btn.innerHTML = "🔍 Buscar Historial";
     btn.disabled = false;
 
     if (!data.ok) throw new Error(data.error || "Error desconocido en el Worker");
@@ -605,56 +605,30 @@ function ejecutarConciliacionCruzada() {
     contenedor.style.display = "block";
     tbody.innerHTML = "";
 
+    // Si el SQL no devuelve nada, significa que no hay lecturas válidas de ese ID
     if (!data.resultados || data.resultados.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; font-weight:bold; color:var(--verde);">✅ ¡Excelente! No hay animales cruzados o perdidos para el lote seleccionado.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; font-weight:bold; color:var(--rojo);">❌ Este chip no ha sido leído físicamente en los inventarios, o fue marcado como ausente.</td></tr>';
       return;
     }
 
     data.resultados.forEach(item => {
-      // Mostrar SOLO Faltantes y Sobrantes
-      if (item.estado_auditoria !== 'Encontrado') {
-          const tr = document.createElement("tr");
-          tr.style.borderBottom = "1px solid var(--borde)";
-          
-          let colorDiag = "var(--amarillo)";
-          let diag = item.detalle_cruzado || "";
-          let asignadoWeb = "Sin Lote";
-          let leidoFisico = "No leído";
-          
-          if(item.estado_auditoria === "Faltante") {
-              colorDiag = "var(--rojo)";
-              asignadoWeb = loteSeleccionado;
-              leidoFisico = "No leído en este corral";
-          }
-          if(item.estado_auditoria === "Sobrante") {
-              colorDiag = "var(--morado)";
-              asignadoWeb = "No pertenece aquí";
-              leidoFisico = loteSeleccionado;
-          }
-          
-          tr.innerHTML = `
-            <td style="padding:10px; font-weight:bold; font-size:12px;">
-              ${item.id_animal || '-'}<br>
-              <span style="color:var(--gris); font-size:11px;">N°: ${item.numero_practico || '-'}</span>
-            </td>
-            <td style="padding:10px; color:var(--azul); font-weight:bold;">${asignadoWeb}</td>
-            <td style="padding:10px; color:var(--verde); font-weight:bold;">${leidoFisico}</td>
-            <td style="padding:10px; color:${colorDiag}; font-weight:bold;">${diag}</td>
-          `;
-          tbody.appendChild(tr);
-      }
+      const tr = document.createElement("tr");
+      tr.style.borderBottom = "1px solid var(--borde)";
+      
+      tr.innerHTML = `
+        <td style="padding:10px; font-weight:bold;">${item.id_animal}</td>
+        <td style="padding:10px; color:var(--azul); font-weight:bold;">${item.numero_practico}</td>
+        <td style="padding:10px;">${item.color}</td>
+        <td style="padding:10px; color:var(--rojo); font-weight:bold;">${item.fecha}</td>
+        <td style="padding:10px; color:var(--verde); font-weight:bold;">${item.lote_fisico}</td>
+      `;
+      tbody.appendChild(tr);
     });
-
-    // Si después de filtrar todos estaban 'Encontrados' y la tabla quedó vacía
-    if (tbody.children.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; font-weight:bold; color:var(--verde);">✅ ¡Excelente! Todos los animales de este lote fueron encontrados y no hay intrusos.</td></tr>';
-    }
-
   })
   .catch(err => {
-    btn.innerHTML = "🔍 Ejecutar Búsqueda Cruzada (Faltantes y Sobrantes)";
+    btn.innerHTML = "🔍 Buscar Historial";
     btn.disabled = false;
-    alert("Error al conciliar: " + err.message);
+    alert("Error al buscar: " + err.message);
   });
 }
 </script>
