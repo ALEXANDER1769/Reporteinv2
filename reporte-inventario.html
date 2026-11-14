@@ -344,73 +344,77 @@ function actualizarTablaAuditoria() {
   const lote = document.getElementById("selectorLoteAuditoria").value;
   const tbody = document.getElementById("tabla-body-auditoria");
   const alertDiv = document.getElementById("alerta-caducidad");
-  
+  const params = new URLSearchParams(window.location.search);
+  const email = params.get("email");
+
   if(!lote) {
     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--gris); font-weight:bold;">Seleccione un lote en el menú superior para ver la conciliación</td></tr>';
     alertDiv.style.display = 'none';
     return;
   }
 
-  const info = conciliacionGlobal[lote];
-  let mostrarBloqueo = false;
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--azul); font-weight:bold;">⏳ Consultando auditoría para ' + lote + '...</td></tr>';
 
-  // Lógica unificada para determinar si el inventario no existe o caducó
-  if (!info) {
-    mostrarBloqueo = true;
-  } else {
-    let fechaInv = new Date(info.ultimaFecha);
-    if (isNaN(fechaInv.getTime())) {
-      mostrarBloqueo = true;
-    } else {
-      const diffDias = Math.ceil((new Date() - fechaInv) / (1000 * 60 * 60 * 24));
-      if (diffDias > 30) {
-        mostrarBloqueo = true;
-      }
+  fetch("https://pysiga.d-alexjose.workers.dev", { 
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      accion: "conciliarLotesCruzados",
+      email: email,
+      lote: lote
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (!data.ok) throw new Error(data.error || "Error al obtener auditoría");
+
+    tbody.innerHTML = '';
+    const resultados = data.resultados || [];
+
+    if (resultados.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--verde); font-weight:bold;">✅ ¡Excelente! No hay discrepancias en este lote.</td></tr>';
+      return;
     }
-  }
 
-  // Si no hay datos, formato inválido o pasaron 30 días, muestra la alerta solicitada
-  if (mostrarBloqueo) {
-    alertDiv.style.display = 'block';
-    alertDiv.style.background = '#fadbd8';
-    alertDiv.style.color = '#c0392b';
-    alertDiv.style.borderColor = '#e74c3c';
-    alertDiv.innerHTML = `🚨 <b>Inventario con mas de 30 dias de antiguedad o inexistente. Actualice o realice el inventario del lote.</b>`;
-    
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; font-weight:bold; color:var(--rojo);">Bloqueo de seguridad: No se muestran datos. Actualice el Excel.</td></tr>`;
-    return;
-  }
+    // Separamos en arrays limpios segun su estado de auditoría
+    const teoricos = [];
+    const encontrados = [];
+    const faltantes = [];
+    const sobrantes = [];
 
-  // Si los datos son válidos y recientes
-  alertDiv.style.display = 'none';
+    resultados.forEach(item => {
+      const formatoCelda = `${item.id_animal || '-'}<br><span style="color:var(--gris); font-size:11px;">N°: ${item.numero_practico || 'S/N'}</span>`;
+      
+      if (item.estado_auditoria === 'Encontrado') {
+        teoricos.push(formatoCelda);
+        encontrados.push(formatoCelda);
+      } else if (item.estado_auditoria === 'Faltante') {
+        teoricos.push(formatoCelda);
+        faltantes.push(formatoCelda);
+      } else if (item.estado_auditoria === 'Sobrante') {
+        sobrantes.push(formatoCelda);
+      }
+    });
 
-  // Se pasan los arrays por la función limpiadora
-  const encontrados = limpiarIDs(info.encontrados);
-  const faltantes = limpiarIDs(info.faltantes);
-  const sobrantes = limpiarIDs(info.sobrantes);
-  const teoricos = [...encontrados, ...faltantes];
-  
-  const maxFilas = Math.max(teoricos.length, encontrados.length, faltantes.length, sobrantes.length);
-  tbody.innerHTML = '';
+    const maxFilas = Math.max(teoricos.length, encontrados.length, faltantes.length, sobrantes.length);
 
-  if(maxFilas === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--gris); font-weight:bold;">Auditoría reciente, pero no se registraron IDs para este lote.</td></tr>';
-    return;
-  }
-
-  for (let i = 0; i < maxFilas; i++) {
-    const tr = document.createElement('tr');
-    tr.style.borderBottom = "1px solid var(--borde)";
-    tr.innerHTML = `
-      <td style="padding:10px; border-right:1px solid var(--borde); font-weight:600;">${teoricos[i] || '-'}</td>
-      <td style="padding:10px; border-right:1px solid var(--borde); color:var(--verde); font-weight:bold;">${encontrados[i] || '-'}</td>
-      <td style="padding:10px; border-right:1px solid var(--borde); color:var(--rojo); font-weight:bold;">${faltantes[i] || '-'}</td>
-      <td style="padding:10px; color:var(--amarillo); font-weight:bold;">${sobrantes[i] || '-'}</td>
-    `;
-    tbody.appendChild(tr);
-  }
+    for (let i = 0; i < maxFilas; i++) {
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = "1px solid var(--borde)";
+      tr.innerHTML = `
+        <td style="padding:10px; border-right:1px solid var(--borde); font-weight:600; font-size:12px;">${teoricos[i] || '-'}</td>
+        <td style="padding:10px; border-right:1px solid var(--borde); color:var(--verde); font-weight:bold; font-size:12px;">${encontrados[i] || '-'}</td>
+        <td style="padding:10px; border-right:1px solid var(--borde); color:var(--rojo); font-weight:bold; font-size:12px;">${faltantes[i] || '-'}</td>
+        <td style="padding:10px; color:var(--amarillo); font-weight:bold; font-size:12px;">${sobrantes[i] || '-'}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  })
+  .catch(err => {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--rojo); font-weight:bold;">Error: ${err.message}</td></tr>`;
+  });
 }
-// ==========================================
+  // ==========================================
 
 function renderizarGraficoLote() {
   const lotes = Object.keys(datosPorLote);
