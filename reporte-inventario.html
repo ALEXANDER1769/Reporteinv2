@@ -351,8 +351,10 @@ function actualizarTablaAuditoria() {
     alertDiv.style.display = 'none';
     return;
   }
+
   const info = conciliacionGlobal[lote];
   let mostrarBloqueo = false;
+
   // Lógica unificada para determinar si el inventario no existe o caducó
   if (!info) {
     mostrarBloqueo = true;
@@ -367,6 +369,7 @@ function actualizarTablaAuditoria() {
       }
     }
   }
+
   // Si no hay datos, formato inválido o pasaron 30 días, muestra la alerta solicitada
   if (mostrarBloqueo) {
     alertDiv.style.display = 'block';
@@ -378,8 +381,10 @@ function actualizarTablaAuditoria() {
     tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; font-weight:bold; color:var(--rojo);">Bloqueo de seguridad: No se muestran datos. Actualice el Excel.</td></tr>`;
     return;
   }
+
   // Si los datos son válidos y recientes
   alertDiv.style.display = 'none';
+
   // Se pasan los arrays por la función limpiadora
   const encontrados = limpiarIDs(info.encontrados);
   const faltantes = limpiarIDs(info.faltantes);
@@ -388,6 +393,7 @@ function actualizarTablaAuditoria() {
   
   const maxFilas = Math.max(teoricos.length, encontrados.length, faltantes.length, sobrantes.length);
   tbody.innerHTML = '';
+
   if(maxFilas === 0) {
     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--gris); font-weight:bold;">Auditoría reciente, pero no se registraron IDs para este lote.</td></tr>';
     return;
@@ -412,13 +418,7 @@ function actualizarTablaAuditoria() {
     `;
     tbody.appendChild(tr);
   }
-} }
-  })
-  .catch(err => {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--rojo); font-weight:bold;">Error: ${err.message}</td></tr>`;
-  });
 }
-  // ==========================================
 
 function renderizarGraficoLote() {
   const lotes = Object.keys(datosPorLote);
