@@ -355,7 +355,6 @@ function actualizarTablaAuditoria() {
   const info = conciliacionGlobal[lote];
   let mostrarBloqueo = false;
 
-  // Lógica unificada para determinar si el inventario no existe o caducó
   if (!info) {
     mostrarBloqueo = true;
   } else {
@@ -370,7 +369,6 @@ function actualizarTablaAuditoria() {
     }
   }
 
-  // Si no hay datos, formato inválido o pasaron 30 días, muestra la alerta solicitada
   if (mostrarBloqueo) {
     alertDiv.style.display = 'block';
     alertDiv.style.background = '#fadbd8';
@@ -382,10 +380,8 @@ function actualizarTablaAuditoria() {
     return;
   }
 
-  // Si los datos son válidos y recientes
   alertDiv.style.display = 'none';
 
-  // Se pasan los arrays por la función limpiadora
   const encontrados = limpiarIDs(info.encontrados);
   const faltantes = limpiarIDs(info.faltantes);
   const sobrantes = limpiarIDs(info.sobrantes);
@@ -399,11 +395,13 @@ function actualizarTablaAuditoria() {
     return;
   }
 
-  // Función interna para formatear ID + Número Práctico (si existe en mapaPracticos)
-  const fmt = (id) => {
-    if (!id || id === '-') return '-';
-    const idLimpio = String(id).trim();
-    const nPrac = (typeof mapaPracticos !== 'undefined' && mapaPracticos[idLimpio]) ? mapaPracticos[idLimpio] : null;
+  // Separa el ID y el número práctico del detalle (si existe), o lo busca en mapaPracticos
+  const fmt = (raw) => {
+    if (!raw || raw === '-') return '-';
+    const partes = String(raw).split('|');
+    const idLimpio = partes[0].trim();
+    const pracDetalle = partes[1] ? partes[1].trim() : null;
+    const nPrac = pracDetalle || ((typeof mapaPracticos !== 'undefined' && mapaPracticos[idLimpio]) ? mapaPracticos[idLimpio] : null);
     return nPrac ? `${idLimpio}<br><span style="color:var(--gris); font-size:11px;">N°: ${nPrac}</span>` : idLimpio;
   };
 
